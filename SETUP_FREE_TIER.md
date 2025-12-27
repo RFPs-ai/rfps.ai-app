@@ -195,10 +195,27 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 ---
 
+## Alternative AI Providers (Chinese LLMs)
+
+For cost-effective alternatives or additional AI capabilities, see:
+
+👉 **[CHINESE_LLM_APIS.md](./CHINESE_LLM_APIS.md)**
+
+Recommended options:
+| Provider | Best For | Free Tier |
+|----------|----------|-----------|
+| **DeepSeek** | Reasoning, deep search | $5 credits |
+| **Qwen** | Multilingual, Chinese | 1M tokens |
+| **Moonshot** | Long documents (200K) | ~$2 credits |
+
+---
+
 ## Support Links
 
 - Supabase Docs: https://supabase.com/docs
 - Anthropic Docs: https://docs.anthropic.com
+- DeepSeek Platform: https://platform.deepseek.com
+- Qwen DashScope: https://dashscope.aliyun.com
 - Vercel Docs: https://vercel.com/docs
 - Project Issues: Check deployment logs in Vercel Dashboard
 
