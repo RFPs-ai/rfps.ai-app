@@ -12,7 +12,9 @@ The project is already linked. To connect a new branch:
 4. Connect your GitHub repository if not already connected
 5. Select the branch you want to deploy
 
-### 2. Add Required Environment Variables
+### 2. Add Required Environment Variables (MUST be done BEFORE deploying)
+
+> **Important:** The build will fail if these environment variables are not set. This is intentional - the application validates required configuration at build time to prevent runtime failures.
 
 Go to **Vercel Dashboard → Project → Settings → Environment Variables** and add:
 
@@ -74,6 +76,12 @@ node scripts/generate-secrets.js
 The domain `app.rfps.ai` is already configured in Vercel. DNS is resolving correctly.
 
 ## 🆘 Troubleshooting
+
+**Build failing with "Invalid environment variables"?**
+- This means required environment variables are not set
+- Go to Vercel Dashboard → Settings → Environment Variables
+- Add: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `ANTHROPIC_API_KEY`
+- Redeploy after setting variables
 
 **Application not loading?**
 - Check environment variables are set for Production
