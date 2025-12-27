@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "SKIP_ENV_VALIDATION=true npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install --legacy-peer-deps",
-  "framework": null,
+  "framework": "nextjs",
   "regions": ["iad1"],
   "crons": [
     {

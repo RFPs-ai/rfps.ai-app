@@ -2,7 +2,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import { createGroq } from "groq-sdk";
+import Groq from "groq-sdk";
 import { env } from "@/env";
 
 /**
@@ -49,7 +49,7 @@ export const gemini = env.GOOGLE_GENERATIVE_AI_API_KEY
 
 // Groq (High-throughput Batch Jobs)
 export const groqClient = env.GROQ_API_KEY
-  ? createGroq({
+  ? new Groq({
       apiKey: env.GROQ_API_KEY,
     })
   : null;
