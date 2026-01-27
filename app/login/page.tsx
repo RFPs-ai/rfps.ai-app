@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,18 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
+  
+  // Redirect to dashboard on preview deployments (client-side check)
+  useEffect(() => {
+    // Check if we're on a preview deployment by checking the hostname
+    if (typeof window !== "undefined") {
+      const hostname = window.location.hostname;
+      if (hostname.includes("-git-")) {
+        router.replace("/dashboard");
+      }
+    }
+  }, [router]);
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
