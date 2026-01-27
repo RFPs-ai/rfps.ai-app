@@ -3,6 +3,22 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 
+// Get base URL - supports Vercel preview deployments
+function getBaseURL() {
+  // Vercel preview deployments
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Production or custom URL
+  if (process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
+  // Local development
+  return "http://localhost:3000";
+}
+
+const baseURL = getBaseURL();
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -26,10 +42,11 @@ export const auth = betterAuth({
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL,
   trustedOrigins: [
     "http://localhost:3000",
-    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    baseURL,
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ],
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
