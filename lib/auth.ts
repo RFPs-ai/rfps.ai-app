@@ -5,19 +5,24 @@ import * as schema from "@/lib/db/schema";
 
 // Get base URL - supports Vercel preview deployments
 function getBaseURL() {
-  // Vercel preview deployments
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  // Production or custom URL
+  // Explicit production URL (highest priority)
   if (process.env.BETTER_AUTH_URL) {
     return process.env.BETTER_AUTH_URL;
+  }
+  // Vercel deployments (preview and production)
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
   // Local development
   return "http://localhost:3000";
 }
 
 const baseURL = getBaseURL();
+
+// Debug logging (remove after fixing)
+console.log("[Better Auth] Base URL:", baseURL);
+console.log("[Better Auth] VERCEL_URL:", process.env.VERCEL_URL);
+console.log("[Better Auth] BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -45,9 +50,10 @@ export const auth = betterAuth({
   baseURL,
   trustedOrigins: [
     "http://localhost:3000",
+    "https://rfps-ai-appdeployment.vercel.app",
     baseURL,
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
-  ],
+  ].filter((url, index, self) => self.indexOf(url) === index), // Remove duplicates
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Update session every 24 hours
