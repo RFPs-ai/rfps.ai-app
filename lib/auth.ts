@@ -5,14 +5,19 @@ import * as schema from "@/lib/db/schema";
 
 // Get base URL - supports Vercel preview deployments
 function getBaseURL() {
-  // On Vercel, ALWAYS use VERCEL_URL (works for both production and preview)
+  // Check if this is a preview deployment (contains "-git-")
+  const isPreview = process.env.VERCEL_URL?.includes("-git-");
+  
+  // For production, use BETTER_AUTH_URL if set
+  if (!isPreview && process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
+  
+  // For previews or if BETTER_AUTH_URL not set, use VERCEL_URL
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  // Fallback to explicit URL (for non-Vercel deployments)
-  if (process.env.BETTER_AUTH_URL) {
-    return process.env.BETTER_AUTH_URL;
-  }
+  
   // Local development
   return "http://localhost:3000";
 }
@@ -25,10 +30,28 @@ function isProduction() {
 
 const baseURL = getBaseURL();
 
-// Debug logging (remove after fixing)
+// Build trusted origins list
+const trustedOrigins: string[] = ["http://localhost:3000"];
+if (baseURL) {
+  trustedOrigins.push(baseURL);
+}
+// Also add BETTER_AUTH_URL if different from baseURL (for production)
+if (process.env.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL !== baseURL) {
+  trustedOrigins.push(process.env.BETTER_AUTH_URL);
+}
+// Add VERCEL_URL if different (for previews)
+if (process.env.VERCEL_URL) {
+  const vercelUrl = `https://${process.env.VERCEL_URL}`;
+  if (!trustedOrigins.includes(vercelUrl)) {
+    trustedOrigins.push(vercelUrl);
+  }
+}
+
+// Debug logging
 console.log("[Better Auth] Base URL:", baseURL);
 console.log("[Better Auth] VERCEL_URL:", process.env.VERCEL_URL);
 console.log("[Better Auth] BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
+console.log("[Better Auth] Trusted Origins:", trustedOrigins);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -55,10 +78,7 @@ export const auth = betterAuth({
   },
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL,
-  trustedOrigins: [
-    "http://localhost:3000",
-    baseURL,
-  ],
+  trustedOrigins,
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Update session every 24 hours
