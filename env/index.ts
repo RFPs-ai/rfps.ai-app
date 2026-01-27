@@ -37,6 +37,10 @@ export const env = createEnv({
     // Redis (Optional)
     REDIS_URL: z.string().url().optional(),
 
+    // OAuth Providers
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+
     // Node Environment
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   },
@@ -46,7 +50,7 @@ export const env = createEnv({
    * These must be prefixed with NEXT_PUBLIC_
    */
   client: {
-    // Add client-side env vars here if needed
+    NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url().optional(),
   },
 
   /**
@@ -59,6 +63,9 @@ export const env = createEnv({
     // Better Auth
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+
+    // Client-side
+    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
 
     // AI Providers
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
@@ -83,6 +90,10 @@ export const env = createEnv({
 
     // Redis
     REDIS_URL: process.env.REDIS_URL,
+
+    // OAuth
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 
     // Node Environment
     NODE_ENV: process.env.NODE_ENV,

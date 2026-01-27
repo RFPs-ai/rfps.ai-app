@@ -24,49 +24,76 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "system",
 ]);
 
-// Users table (Better Auth compatible)
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  email: text("email").notNull().unique(),
+// ================================
+// Better Auth Required Tables
+// ================================
+
+// Users table (Better Auth compatible - exact column names)
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
   name: text("name"),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("emailVerified").default(false),
   image: text("image"),
-  emailVerified: boolean("email_verified").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  // Custom fields for RFPs.ai
   role: userRoleEnum("role").default("user"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Sessions table (Better Auth compatible)
-export const sessions = pgTable("sessions", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expiresAt").notNull(),
   token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  userId: uuid("user_id")
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  userId: text("userId")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+    .references(() => user.id, { onDelete: "cascade" }),
 });
 
-// Accounts table (Better Auth OAuth)
-export const accounts = pgTable("accounts", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
+// Accounts table (Better Auth OAuth - exact column names)
+export const account = pgTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  userId: text("userId")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  providerId: text("provider_id").notNull(),
-  providerAccountId: text("provider_account_id").notNull(),
-  accessToken: text("access_token"),
-  refreshToken: text("refresh_token"),
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+    .references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
+  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
+
+// Verification table (Better Auth - for email verification, password reset, etc.)
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+// ================================
+// RFPs.ai Application Tables
+// ================================
 
 // Companies table
 export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => user.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   website: text("website"),
   description: text("description"),
@@ -155,9 +182,9 @@ export const userRfps = pgTable(
   "user_rfps",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "cascade" }),
     rfpId: uuid("rfp_id")
       .notNull()
       .references(() => rfps.id, { onDelete: "cascade" }),
@@ -195,9 +222,9 @@ export const userRfps = pgTable(
 // Search history
 export const searchHistory = pgTable("search_history", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => user.id, { onDelete: "cascade" }),
   query: text("query").notNull(),
   filters: json("filters").$type<Record<string, any>>(),
   resultCount: integer("result_count").default(0),
@@ -209,9 +236,9 @@ export const notifications = pgTable(
   "notifications",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "cascade" }),
     type: notificationTypeEnum("type").notNull(),
     title: text("title").notNull(),
     message: text("message").notNull(),
@@ -239,34 +266,37 @@ export const dataSources = pgTable("data_sources", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// ================================
 // Relations
-export const usersRelations = relations(users, ({ many, one }) => ({
-  sessions: many(sessions),
-  accounts: many(accounts),
+// ================================
+
+export const userRelations = relations(user, ({ many, one }) => ({
+  sessions: many(session),
+  accounts: many(account),
   company: one(companies),
   userRfps: many(userRfps),
   searchHistory: many(searchHistory),
   notifications: many(notifications),
 }));
 
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
-    references: [users.id],
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
   }),
 }));
 
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, {
-    fields: [accounts.userId],
-    references: [users.id],
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
   }),
 }));
 
 export const companiesRelations = relations(companies, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [companies.userId],
-    references: [users.id],
+    references: [user.id],
   }),
 }));
 
@@ -276,9 +306,9 @@ export const rfpsRelations = relations(rfps, ({ many }) => ({
 }));
 
 export const userRfpsRelations = relations(userRfps, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [userRfps.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   rfp: one(rfps, {
     fields: [userRfps.rfpId],
@@ -287,16 +317,16 @@ export const userRfpsRelations = relations(userRfps, ({ one }) => ({
 }));
 
 export const searchHistoryRelations = relations(searchHistory, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [searchHistory.userId],
-    references: [users.id],
+    references: [user.id],
   }),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [notifications.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   rfp: one(rfps, {
     fields: [notifications.rfpId],
@@ -304,11 +334,14 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
-// Export types
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-export type Session = typeof sessions.$inferSelect;
-export type Account = typeof accounts.$inferSelect;
+// ================================
+// Export Types
+// ================================
+
+export type User = typeof user.$inferSelect;
+export type NewUser = typeof user.$inferInsert;
+export type Session = typeof session.$inferSelect;
+export type Account = typeof account.$inferSelect;
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
 export type Rfp = typeof rfps.$inferSelect;
