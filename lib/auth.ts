@@ -5,16 +5,22 @@ import * as schema from "@/lib/db/schema";
 
 // Get base URL - supports Vercel preview deployments
 function getBaseURL() {
-  // Explicit production URL (highest priority)
-  if (process.env.BETTER_AUTH_URL) {
-    return process.env.BETTER_AUTH_URL;
-  }
-  // Vercel deployments (preview and production)
+  // On Vercel, ALWAYS use VERCEL_URL (works for both production and preview)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
+  // Fallback to explicit URL (for non-Vercel deployments)
+  if (process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
   // Local development
   return "http://localhost:3000";
+}
+
+// Check if we're on production (not a preview)
+function isProduction() {
+  // If VERCEL_URL contains "git-" it's a preview deployment
+  return process.env.VERCEL_URL && !process.env.VERCEL_URL.includes("-git-");
 }
 
 const baseURL = getBaseURL();
@@ -44,7 +50,7 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       // Only enable Google OAuth on production (not on preview deployments)
-      enabled: !!process.env.GOOGLE_CLIENT_ID && baseURL.includes("rfps-ai-appdeployment.vercel.app"),
+      enabled: !!process.env.GOOGLE_CLIENT_ID && (isProduction() || !process.env.VERCEL),
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,
