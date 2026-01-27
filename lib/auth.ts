@@ -51,10 +51,8 @@ export const auth = betterAuth({
   baseURL,
   trustedOrigins: [
     "http://localhost:3000",
-    "https://rfps-ai-appdeployment.vercel.app",
     baseURL,
-    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
-  ].filter((url, index, self) => self.indexOf(url) === index), // Remove duplicates
+  ],
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Update session every 24 hours
