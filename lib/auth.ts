@@ -43,7 +43,8 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      enabled: !!process.env.GOOGLE_CLIENT_ID,
+      // Only enable Google OAuth on production (not on preview deployments)
+      enabled: !!process.env.GOOGLE_CLIENT_ID && baseURL.includes("rfps-ai-appdeployment.vercel.app"),
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,
