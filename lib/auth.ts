@@ -30,18 +30,24 @@ function isProduction() {
 
 const baseURL = getBaseURL();
 
-// Build trusted origins list
+// Build trusted origins list - Better Auth validates the Origin header
 const trustedOrigins: string[] = ["http://localhost:3000"];
+
+// Always add baseURL (this is what Better Auth uses as the primary origin)
 if (baseURL) {
   trustedOrigins.push(baseURL);
 }
-// Also add BETTER_AUTH_URL if different from baseURL (for production)
+
+// Add BETTER_AUTH_URL if set and different (for production)
 if (process.env.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL !== baseURL) {
   trustedOrigins.push(process.env.BETTER_AUTH_URL);
 }
-// Add VERCEL_URL if different (for previews)
+
+// CRITICAL: For preview deployments, VERCEL_URL must be in trustedOrigins
+// The Origin header from browser requests will be the preview URL
 if (process.env.VERCEL_URL) {
   const vercelUrl = `https://${process.env.VERCEL_URL}`;
+  // Add with https:// prefix (this is what the browser sends)
   if (!trustedOrigins.includes(vercelUrl)) {
     trustedOrigins.push(vercelUrl);
   }
