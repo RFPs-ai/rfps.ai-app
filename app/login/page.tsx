@@ -90,11 +90,11 @@ export default function LoginPage() {
 
         <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl font-semibold text-center">
-              Welcome back
+            <CardTitle className="text-2xl font-semibold text-center bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Welcome Back! 🚀
             </CardTitle>
-            <CardDescription className="text-center">
-              Sign in to your account to continue
+            <CardDescription className="text-center text-base">
+              Sign in to discover winning RFP opportunities
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
