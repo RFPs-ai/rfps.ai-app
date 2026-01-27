@@ -3,22 +3,17 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { SignOutButton } from "@/components/sign-out-button";
-import { isPreviewDeployment } from "@/lib/preview";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const isPreview = isPreviewDeployment();
-  const session = isPreview
-    ? null
-    : await auth.api.getSession({
-        headers: await headers(),
-      });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  // Only require auth on production
-  if (!isPreview && !session) {
+  if (!session) {
     redirect("/login");
   }
 
@@ -68,28 +63,19 @@ export default async function AppLayout({
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {!isPreview && session && (
-                <>
-                  <div className="hidden sm:flex items-center gap-2">
-                    {session.user.image && (
-                      <img
-                        src={session.user.image}
-                        alt={session.user.name || "User"}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
-                    <span className="text-sm text-muted-foreground">
-                      {session.user.name || session.user.email}
-                    </span>
-                  </div>
-                  <SignOutButton />
-                </>
-              )}
-              {isPreview && (
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                  Preview Mode
+              <div className="hidden sm:flex items-center gap-2">
+                {session.user.image && (
+                  <img
+                    src={session.user.image}
+                    alt={session.user.name || "User"}
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {session.user.name || session.user.email}
                 </span>
-              )}
+              </div>
+              <SignOutButton />
             </div>
           </div>
         </div>
