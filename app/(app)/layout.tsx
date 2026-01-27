@@ -10,19 +10,29 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isPreview = isPreviewDeployment();
+  const headerList = await headers();
+  const hostname = headerList.get("host") || "";
+  const isPreview = isPreviewDeployment() || hostname.includes("-git-");
+  
+  // Debug logging
+  console.log("[Layout] Hostname:", hostname);
+  console.log("[Layout] VERCEL_URL:", process.env.VERCEL_URL);
+  console.log("[Layout] Is Preview:", isPreview);
   
   // Skip auth check on PR preview deployments (Better Auth doesn't support dynamic preview URLs)
   const session = isPreview
     ? null
     : await auth.api.getSession({
-        headers: await headers(),
+        headers: headerList,
       });
 
   // Only require auth on production
   if (!isPreview && !session) {
+    console.log("[Layout] No session, redirecting to /login");
     redirect("/login");
   }
+  
+  console.log("[Layout] Rendering with preview:", isPreview, "session:", !!session);
 
   return (
     <div className="min-h-screen bg-background">
