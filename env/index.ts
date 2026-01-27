@@ -13,7 +13,7 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.string().url().optional(),
 
-    // AI Providers (all optional for initial setup)
+    // AI Providers (all optional - can add later)
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
     OPENAI_API_KEY: z.string().min(1).optional(),
     XAI_API_KEY: z.string().min(1).optional(),

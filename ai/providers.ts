@@ -11,11 +11,13 @@ import { env } from "@/env";
  */
 
 // Anthropic (Primary)
-export const claude = {
-  sonnet: anthropic("claude-sonnet-4-20250514"),
-  opus: anthropic("claude-opus-4-20241229"),
-  haiku: anthropic("claude-3-5-haiku-20241022"),
-};
+export const claude = env.ANTHROPIC_API_KEY
+  ? {
+      sonnet: anthropic("claude-sonnet-4-20250514"),
+      opus: anthropic("claude-opus-4-20241229"),
+      haiku: anthropic("claude-3-5-haiku-20241022"),
+    }
+  : null;
 
 // OpenAI (Fallback & Embeddings)
 export const gpt = {
@@ -58,14 +60,16 @@ export const groqClient = env.GROQ_API_KEY
  * Get primary model for reasoning & analysis
  */
 export function getPrimaryModel() {
-  return claude.sonnet;
+  if (claude?.sonnet) return claude.sonnet;
+  if (gpt["4o"]) return gpt["4o"];
+  throw new Error("No AI provider configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY to environment variables.");
 }
 
 /**
  * Get fast model for quick tasks
  */
 export function getFastModel() {
-  return gemini?.flash || claude.haiku;
+  return gemini?.flash || claude?.haiku || gpt["4o-mini"];
 }
 
 /**
