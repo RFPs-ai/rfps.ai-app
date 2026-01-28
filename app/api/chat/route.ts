@@ -4,17 +4,21 @@ import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { isPreviewDeployment } from "@/lib/preview";
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  // Check authentication
+  // Skip auth check on PR preview deployments
+  const isPreview = isPreviewDeployment();
+  if (!isPreview) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
+    }
   }
 
   const { messages } = await req.json();

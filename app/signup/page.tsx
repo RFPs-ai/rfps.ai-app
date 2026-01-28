@@ -1,57 +1,63 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { signIn } from "@/lib/auth-client";
+import { signIn, signUp } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { isPreviewDeploymentClient } from "@/lib/preview";
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const router = useRouter();
   const isPreview = isPreviewDeploymentClient();
-  
-  // Redirect to dashboard on preview deployments (client-side check)
-  useEffect(() => {
-    if (isPreview) {
-      router.replace("/dashboard");
-    }
-  }, [router, isPreview]);
-  
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters long");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const result = await signIn.email({
+      const result = await signUp.email({
         email,
         password,
+        name,
       });
 
       if (result.error) {
-        toast.error(result.error.message || "Invalid email or password");
+        toast.error(result.error.message || "Failed to create account");
         return;
       }
 
-      toast.success("Welcome back!");
+      toast.success("Account created successfully!");
       router.push("/welcome");
     } catch (error) {
-      toast.error("Invalid email or password");
+      toast.error("Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
       await signIn.social({
@@ -59,7 +65,7 @@ export default function LoginPage() {
         callbackURL: "/welcome",
       });
     } catch (error) {
-      toast.error("Failed to sign in with Google");
+      toast.error("Failed to sign up with Google");
       setIsGoogleLoading(false);
     }
   };
@@ -94,28 +100,28 @@ export default function LoginPage() {
             RFPs.ai
           </h1>
           <p className="text-muted-foreground mt-2">
-            AI-Powered RFP Qualification Platform
+            Start winning more government contracts
           </p>
         </div>
 
         <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl font-semibold text-center bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Welcome Back! 🚀
+            <CardTitle className="text-2xl font-semibold text-center">
+              Create an account
             </CardTitle>
-            <CardDescription className="text-center text-base">
-              Sign in to discover winning RFP opportunities
-          </CardDescription>
-        </CardHeader>
+            <CardDescription className="text-center">
+              Get started with AI-powered RFP qualification
+            </CardDescription>
+          </CardHeader>
           <CardContent className="space-y-4">
-            {/* Google Sign In Button - Hidden on preview deployments */}
+            {/* Google Sign Up Button - Hidden on preview deployments */}
             {!isPreview && (
               <>
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full h-11 font-medium"
-                  onClick={handleGoogleSignIn}
+                  onClick={handleGoogleSignUp}
                   disabled={isGoogleLoading}
                 >
                   {isGoogleLoading ? (
@@ -163,38 +169,57 @@ export default function LoginPage() {
               </div>
             )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Smith"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                   className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Work Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="h-11"
-              />
-            </div>
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="h-11"
+                />
+              </div>
               <Button
                 type="submit"
                 className="w-full h-11 font-medium"
@@ -203,27 +228,27 @@ export default function LoginPage() {
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 ) : (
-                  "Sign In"
+                  "Create Account"
                 )}
-            </Button>
-          </form>
+              </Button>
+            </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 pt-0">
             <div className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/signup"
+                href="/login"
                 className="text-primary font-medium hover:underline"
               >
-                Create account
+                Sign in
               </Link>
-          </div>
+            </div>
           </CardFooter>
-      </Card>
+        </Card>
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          By continuing, you agree to our{" "}
+          By creating an account, you agree to our{" "}
           <Link href="/terms" className="hover:underline">
             Terms of Service
           </Link>{" "}

@@ -11,11 +11,13 @@ import { env } from "@/env";
  */
 
 // Anthropic (Primary)
-export const claude = {
+export const claude = env.ANTHROPIC_API_KEY
+  ? {
   sonnet: anthropic("claude-sonnet-4-20250514"),
   opus: anthropic("claude-opus-4-20241229"),
   haiku: anthropic("claude-3-5-haiku-20241022"),
-};
+    }
+  : null;
 
 // OpenAI (Fallback & Embeddings)
 export const gpt = {
@@ -74,7 +76,9 @@ export const groqClient = env.GROQ_API_KEY
  * Uses DeepSeek V3 (via OpenRouter) by default, Claude Sonnet as fallback
  */
 export function getPrimaryModel() {
-  return deepseek?.chat ?? claude.sonnet;
+  if (deepseek?.chat) return deepseek?.chat;
+  if (claude?.sonnet) return claude?.sonnet;
+  throw new Error("No AI provider configured. Please add OPENROUTER_API_KEY or ANTHROPIC_API_KEYto environment variables.");
 }
 
 /**
@@ -82,14 +86,16 @@ export function getPrimaryModel() {
  * Uses DeepSeek R1 (via OpenRouter) by default, Claude Opus as fallback
  */
 export function getReasoningModel() {
-  return deepseek?.reasoner ?? claude.opus;
+    if (deepseek?.reasoner) return deepseek?.reasoner;
+    if (claude?.opus) return claude?.opus;
+    throw new Error("No AI provider configured. Please add OPENROUTER_API_KEY or ANTHROPIC_API_KEYto environment variables.");
 }
 
 /**
  * Get fast model for quick tasks
  */
 export function getFastModel() {
-  return gemini?.flash || claude.haiku;
+  return gemini?.flash || claude?.haiku || gpt["4o-mini"];
 }
 
 /**
