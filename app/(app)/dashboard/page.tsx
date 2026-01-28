@@ -5,7 +5,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+            ✨ Test Preview
+          </span>
+        </div>
         <p className="text-muted-foreground">
           Welcome to RFPs.ai - Your AI-powered RFP qualification engine
         </p>
