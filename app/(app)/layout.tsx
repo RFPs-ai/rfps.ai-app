@@ -24,7 +24,7 @@ export default async function AppLayout({
     ? null
     : await auth.api.getSession({
         headers: headerList,
-      });
+  });
 
   // Only require auth on production
   if (!isPreview && !session) {
@@ -90,7 +90,7 @@ export default async function AppLayout({
                         className="w-8 h-8 rounded-full"
                       />
                     )}
-                    <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                       {session.user.name || session.user.email}
                     </span>
                   </div>
@@ -100,7 +100,7 @@ export default async function AppLayout({
               {isPreview && (
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded border">
                   🔍 Preview Mode
-                </span>
+              </span>
               )}
             </div>
           </div>

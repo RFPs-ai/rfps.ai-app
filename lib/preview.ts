@@ -10,3 +10,12 @@ export function isPreviewDeployment(): boolean {
   return !!process.env.VERCEL_URL?.includes("-git-");
 }
 
+/**
+ * Client-side check for preview deployment
+ * Checks if the current hostname contains "-git-"
+ */
+export function isPreviewDeploymentClient(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname.includes("-git-");
+}
+

@@ -12,12 +12,12 @@ export async function POST(req: Request) {
   // Skip auth check on PR preview deployments
   const isPreview = isPreviewDeployment();
   if (!isPreview) {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    if (!session) {
-      return new Response("Unauthorized", { status: 401 });
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
     }
   }
 

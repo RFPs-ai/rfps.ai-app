@@ -3,18 +3,32 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 
+// Check if we're on a preview deployment
+function isPreview(): boolean {
+  return !!process.env.VERCEL_URL?.includes("-git-");
+}
+
+// Check if we're on production (not a preview)
+function isProduction(): boolean {
+  return !!process.env.VERCEL_URL && !process.env.VERCEL_URL.includes("-git-");
+}
+
 // Get base URL - supports Vercel preview deployments
-function getBaseURL() {
-  // Check if this is a preview deployment (contains "-git-")
-  const isPreview = process.env.VERCEL_URL?.includes("-git-");
+function getBaseURL(): string {
+  const isPreviewDeploy = isPreview();
   
-  // For production, use BETTER_AUTH_URL if set
-  if (!isPreview && process.env.BETTER_AUTH_URL) {
+  // For production, use BETTER_AUTH_URL if set, otherwise VERCEL_URL
+  if (isProduction() && process.env.BETTER_AUTH_URL) {
     return process.env.BETTER_AUTH_URL;
   }
   
-  // For previews or if BETTER_AUTH_URL not set, use VERCEL_URL
-  if (process.env.VERCEL_URL) {
+  // For previews, always use VERCEL_URL (dynamic preview URL)
+  if (isPreviewDeploy && process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // For production without BETTER_AUTH_URL, use VERCEL_URL
+  if (isProduction() && process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
   
@@ -22,42 +36,46 @@ function getBaseURL() {
   return "http://localhost:3000";
 }
 
-// Check if we're on production (not a preview)
-function isProduction() {
-  // If VERCEL_URL contains "git-" it's a preview deployment
-  return process.env.VERCEL_URL && !process.env.VERCEL_URL.includes("-git-");
-}
-
 const baseURL = getBaseURL();
+const isPreviewDeploy = isPreview();
+const isProd = isProduction();
 
 // Build trusted origins list - Better Auth validates the Origin header
+// Better Auth does exact string matching, so we need to include all possible origins
 const trustedOrigins: string[] = ["http://localhost:3000"];
 
 // Always add baseURL (this is what Better Auth uses as the primary origin)
-if (baseURL) {
+if (baseURL && !trustedOrigins.includes(baseURL)) {
   trustedOrigins.push(baseURL);
 }
 
-// Add BETTER_AUTH_URL if set and different (for production)
-if (process.env.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL !== baseURL) {
-  trustedOrigins.push(process.env.BETTER_AUTH_URL);
+// Add production URL explicitly if different from baseURL
+// This ensures production works even if BETTER_AUTH_URL is set differently
+if (isProd && process.env.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL !== baseURL) {
+  if (!trustedOrigins.includes(process.env.BETTER_AUTH_URL)) {
+    trustedOrigins.push(process.env.BETTER_AUTH_URL);
+  }
 }
 
 // CRITICAL: For preview deployments, VERCEL_URL must be in trustedOrigins
-// The Origin header from browser requests will be the preview URL
+// The Origin header from browser requests will be the exact preview URL
+// Better Auth doesn't support wildcards, so we add the specific preview URL
 if (process.env.VERCEL_URL) {
   const vercelUrl = `https://${process.env.VERCEL_URL}`;
-  // Add with https:// prefix (this is what the browser sends)
   if (!trustedOrigins.includes(vercelUrl)) {
     trustedOrigins.push(vercelUrl);
   }
 }
 
-// Debug logging
-console.log("[Better Auth] Base URL:", baseURL);
-console.log("[Better Auth] VERCEL_URL:", process.env.VERCEL_URL);
-console.log("[Better Auth] BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
-console.log("[Better Auth] Trusted Origins:", trustedOrigins);
+// Debug logging (only in development/preview, not production)
+if (process.env.NODE_ENV !== "production" || isPreviewDeploy) {
+  console.log("[Better Auth] Base URL:", baseURL);
+  console.log("[Better Auth] VERCEL_URL:", process.env.VERCEL_URL);
+  console.log("[Better Auth] BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
+  console.log("[Better Auth] Is Preview:", isPreviewDeploy);
+  console.log("[Better Auth] Is Production:", isProd);
+  console.log("[Better Auth] Trusted Origins:", trustedOrigins);
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -79,7 +97,8 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       // Only enable Google OAuth on production (not on preview deployments)
-      enabled: !!process.env.GOOGLE_CLIENT_ID && (isProduction() || !process.env.VERCEL),
+      // Preview URLs are dynamic and can't be added to Google Cloud Console
+      enabled: !!process.env.GOOGLE_CLIENT_ID && isProd && !isPreviewDeploy,
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,

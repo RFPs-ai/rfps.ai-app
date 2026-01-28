@@ -13,9 +13,9 @@ import { env } from "@/env";
 // Anthropic (Primary)
 export const claude = env.ANTHROPIC_API_KEY
   ? {
-      sonnet: anthropic("claude-sonnet-4-20250514"),
-      opus: anthropic("claude-opus-4-20241229"),
-      haiku: anthropic("claude-3-5-haiku-20241022"),
+  sonnet: anthropic("claude-sonnet-4-20250514"),
+  opus: anthropic("claude-opus-4-20241229"),
+  haiku: anthropic("claude-3-5-haiku-20241022"),
     }
   : null;
 
