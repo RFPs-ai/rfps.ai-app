@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { SignOutButton } from "@/components/sign-out-button";
 import { isPreviewDeployment } from "@/lib/preview";
+import { AppProviders } from "@/components/app-providers";
 
 export default async function AppLayout({
   children,
@@ -106,7 +107,9 @@ export default async function AppLayout({
           </div>
         </div>
       </nav>
-      <main className="container mx-auto px-4 py-8">{children}</main>
+      <main className="container mx-auto px-4 py-8">
+        <AppProviders>{children}</AppProviders>
+      </main>
     </div>
   );
 }

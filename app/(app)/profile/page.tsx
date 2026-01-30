@@ -1,79 +1,131 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { Loader2, Pencil, Building2, Globe, FileText, Award, MapPin, Languages } from "lucide-react";
+import { useNAICS } from "@/components/naics-provider";
+
+interface CompanyProfile {
+  id: string;
+  name: string;
+  website: string | null;
+  description: string | null;
+  naicsCodes: string[];
+  unspscCodes: string[];
+  certifications: string[];
+  regions: string[];
+  languages: string[];
+  budgetMin: number | null;
+  budgetMax: number | null;
+  negativeKeywords: string[];
+  buyerBlacklist: string[];
+}
 
 export default function ProfilePage() {
-  const [companyName, setCompanyName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [naicsCodes, setNaicsCodes] = useState<string[]>([]);
-  const [newNaics, setNewNaics] = useState("");
-  const [certifications, setCertifications] = useState<string[]>([]);
-  const [newCert, setNewCert] = useState("");
-  const [regions, setRegions] = useState<string[]>([]);
-  const [languages, setLanguages] = useState<string[]>([]);
+  const router = useRouter();
+  const { getCodeDescription } = useNAICS();
 
-  const handleAddNaics = () => {
-    if (newNaics && !naicsCodes.includes(newNaics)) {
-      setNaicsCodes([...naicsCodes, newNaics]);
-      setNewNaics("");
+  const [company, setCompany] = useState<CompanyProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load existing profile on mount
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const response = await fetch("/api/profile");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.company) {
+            setCompany(data.company);
+          } else {
+            // No profile exists, redirect to create one
+            router.push("/profile/edit");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+        toast.error("Failed to load profile");
+      } finally {
+        setIsLoading(false);
+      }
     }
-  };
 
-  const handleAddCert = () => {
-    if (newCert && !certifications.includes(newCert)) {
-      setCertifications([...certifications, newCert]);
-      setNewCert("");
-    }
-  };
+    loadProfile();
+  }, [router]);
 
-  const handleSave = () => {
-    toast.success("Company profile saved successfully!");
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!company) {
+    return null; // Will redirect to edit page
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Company Profile</h1>
-        <p className="text-muted-foreground">
-          Configure your company information to receive better RFP matches
-        </p>
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Company Profile</h1>
+          <p className="text-muted-foreground">
+            Your company information for RFP matching
+          </p>
+        </div>
+        <Link href="/profile/edit">
+          <Button>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Profile
+          </Button>
+        </Link>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
-          <CardDescription>
-            Your company details and website
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Basic Information
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="company-name">Company Name</Label>
-            <Input
-              id="company-name"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Acme Corporation"
-            />
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Company Name</div>
+            <div className="text-lg font-semibold">{company.name}</div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              type="url"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              placeholder="https://example.com"
-            />
-          </div>
+          
+          {company.website && (
+            <div>
+              <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <Globe className="h-3.5 w-3.5" />
+                Website
+              </div>
+              <a
+                href={company.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                {company.website}
+              </a>
+            </div>
+          )}
+          
+          {company.description && (
+            <div>
+              <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <FileText className="h-3.5 w-3.5" />
+                Description
+              </div>
+              <div>{company.description}</div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -84,150 +136,103 @@ export default function ProfilePage() {
             Industry classification codes that describe your business
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={newNaics}
-              onChange={(e) => setNewNaics(e.target.value)}
-              placeholder="e.g., 541511 (Custom Computer Programming)"
-              onKeyPress={(e) => e.key === "Enter" && handleAddNaics()}
-            />
-            <Button onClick={handleAddNaics}>Add</Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {naicsCodes.map((code) => (
-              <Badge key={code} variant="secondary">
-                {code}
-                <button
-                  onClick={() =>
-                    setNaicsCodes(naicsCodes.filter((c) => c !== code))
-                  }
-                  className="ml-2"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
+        <CardContent>
+          {company.naicsCodes && company.naicsCodes.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {company.naicsCodes.map((code) => {
+                const description = getCodeDescription(code);
+                return (
+                  <Badge
+                    key={code}
+                    variant="secondary"
+                    className="py-1.5 px-3 text-sm"
+                  >
+                    <span className="font-mono font-medium">{code}</span>
+                    {description && (
+                      <span className="ml-1 text-muted-foreground">
+                        - {description.length > 40 ? description.substring(0, 40) + "..." : description}
+                      </span>
+                    )}
+                  </Badge>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No NAICS codes configured</p>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Certifications</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5" />
+            Certifications
+          </CardTitle>
           <CardDescription>
             Professional certifications your company holds
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={newCert}
-              onChange={(e) => setNewCert(e.target.value)}
-              placeholder="e.g., ISO 27001, SOC 2"
-              onKeyPress={(e) => e.key === "Enter" && handleAddCert()}
-            />
-            <Button onClick={handleAddCert}>Add</Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {certifications.map((cert) => (
-              <Badge key={cert} variant="secondary">
-                {cert}
-                <button
-                  onClick={() =>
-                    setCertifications(certifications.filter((c) => c !== cert))
-                  }
-                  className="ml-2"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
+        <CardContent>
+          {company.certifications && company.certifications.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {company.certifications.map((cert) => (
+                <Badge key={cert} variant="secondary">
+                  {cert}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No certifications configured</p>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Geographic Preferences</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Geographic Preferences
+          </CardTitle>
           <CardDescription>
-            Regions where you want to find opportunities
+            Regions and languages for opportunity matching
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Regions</Label>
-            <Select
-              onValueChange={(value) => {
-                if (!regions.includes(value)) {
-                  setRegions([...regions, value]);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select regions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Ontario">Ontario</SelectItem>
-                <SelectItem value="British Columbia">British Columbia</SelectItem>
-                <SelectItem value="Quebec">Quebec</SelectItem>
-                <SelectItem value="Alberta">Alberta</SelectItem>
-                <SelectItem value="Saskatchewan">Saskatchewan</SelectItem>
-                <SelectItem value="Manitoba">Manitoba</SelectItem>
-              </SelectContent>
-            </Select>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">Regions</div>
+            {company.regions && company.regions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {company.regions.map((region) => (
+                  <Badge key={region} variant="outline">
+                    {region}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No regions configured</p>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {regions.map((region) => (
-              <Badge key={region} variant="secondary">
-                {region}
-                <button
-                  onClick={() => setRegions(regions.filter((r) => r !== region))}
-                  className="ml-2"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Languages</Label>
-            <Select
-              onValueChange={(value) => {
-                if (!languages.includes(value)) {
-                  setLanguages([...languages, value]);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select languages" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EN">English</SelectItem>
-                <SelectItem value="FR">French</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {languages.map((lang) => (
-              <Badge key={lang} variant="secondary">
-                {lang}
-                <button
-                  onClick={() => setLanguages(languages.filter((l) => l !== lang))}
-                  className="ml-2"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
+          
+          <div>
+            <div className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+              <Languages className="h-3.5 w-3.5" />
+              Languages
+            </div>
+            {company.languages && company.languages.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {company.languages.map((lang) => (
+                  <Badge key={lang} variant="outline">
+                    {lang === "EN" ? "English" : lang === "FR" ? "French" : lang}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No languages configured</p>
+            )}
           </div>
         </CardContent>
       </Card>
-
-      <Button onClick={handleSave} size="lg">
-        Save Profile
-      </Button>
     </div>
   );
 }
