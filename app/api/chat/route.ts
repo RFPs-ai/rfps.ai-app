@@ -1,5 +1,5 @@
 import { streamText } from "ai";
-import { getPrimaryModel } from "@/ai/providers";
+import { getPrimaryModel, claude } from "@/ai/providers";
 import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
@@ -23,13 +23,36 @@ export async function POST(req: Request) {
 
   const { messages } = await req.json();
 
-  const result = streamText({
-    model: getPrimaryModel(),
-    system: SYSTEM_PROMPT,
-    messages,
-    tools,
-    maxSteps: 5,
-  });
+  const primaryModel = getPrimaryModel();
+  
+  try {
+    const result = streamText({
+      model: primaryModel,
+      system: SYSTEM_PROMPT,
+      messages,
+      tools,
+      maxSteps: 5,
+    });
 
-  return result.toDataStreamResponse();
+    return result.toDataStreamResponse();
+  } catch (error) {
+    // Fallback to Claude on primary model failure (rate limits, API errors, etc.)
+    // Only fallback if we were using OpenRouter/DeepSeek (primary !== Claude)
+    if (primaryModel !== claude.sonnet) {
+      console.warn("Primary model (OpenRouter/DeepSeek) failed, falling back to Claude:", error);
+      
+      const fallbackResult = streamText({
+        model: claude.sonnet,
+        system: SYSTEM_PROMPT,
+        messages,
+        tools,
+        maxSteps: 5,
+      });
+
+      return fallbackResult.toDataStreamResponse();
+    }
+    
+    // If already using Claude and it failed, re-throw
+    throw error;
+  }
 }

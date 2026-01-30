@@ -26,6 +26,21 @@ export const gpt = {
   "o1": openai("o1"),
 };
 
+// OpenRouter (Primary - Access to DeepSeek & other models)
+const openrouterClient = env.OPENROUTER_API_KEY
+  ? createOpenAI({
+      apiKey: env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
+    })
+  : null;
+
+export const deepseek = openrouterClient
+  ? {
+      chat: openrouterClient("deepseek/deepseek-chat"),  // V3 - General
+      reasoner: openrouterClient("deepseek/deepseek-r1"), // R1 - Reasoning
+    }
+  : null;
+
 // xAI (Real-time Search)
 export const xai = env.XAI_API_KEY
   ? createOpenAI({
@@ -58,11 +73,22 @@ export const groqClient = env.GROQ_API_KEY
 
 /**
  * Get primary model for reasoning & analysis
+ * Uses DeepSeek V3 (via OpenRouter) by default, Claude Sonnet as fallback
  */
 export function getPrimaryModel() {
-  if (claude?.sonnet) return claude.sonnet;
-  if (gpt["4o"]) return gpt["4o"];
-  throw new Error("No AI provider configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY to environment variables.");
+  if (deepseek?.chat) return deepseek?.chat;
+  if (claude?.sonnet) return claude?.sonnet;
+  throw new Error("No AI provider configured. Please add OPENROUTER_API_KEY or ANTHROPIC_API_KEYto environment variables.");
+}
+
+/**
+ * Get reasoning model for complex analysis
+ * Uses DeepSeek R1 (via OpenRouter) by default, Claude Opus as fallback
+ */
+export function getReasoningModel() {
+    if (deepseek?.reasoner) return deepseek?.reasoner;
+    if (claude?.opus) return claude?.opus;
+    throw new Error("No AI provider configured. Please add OPENROUTER_API_KEY or ANTHROPIC_API_KEYto environment variables.");
 }
 
 /**
