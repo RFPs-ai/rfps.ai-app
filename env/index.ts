@@ -44,6 +44,9 @@ export const env = createEnv({
 
     // Node Environment
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+
+    // Debug mode
+    DEBUG: z.string().optional(),
   },
 
   /**
@@ -99,6 +102,9 @@ export const env = createEnv({
 
     // Node Environment
     NODE_ENV: process.env.NODE_ENV,
+
+    // Debug
+    DEBUG: process.env.DEBUG,
   },
 
   /**

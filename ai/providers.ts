@@ -76,9 +76,18 @@ export const groqClient = env.GROQ_API_KEY
  * Uses DeepSeek V3 (via OpenRouter) by default, Claude Sonnet as fallback
  */
 export function getPrimaryModel() {
-  if (deepseek?.chat) return deepseek?.chat;
-  if (claude?.sonnet) return claude?.sonnet;
-  throw new Error("No AI provider configured. Please add OPENROUTER_API_KEY or ANTHROPIC_API_KEYto environment variables.");
+  if (deepseek?.chat) return deepseek.chat;
+  if (claude?.sonnet) return claude.sonnet;
+  throw new Error("No AI provider configured. Please add OPENROUTER_API_KEY or ANTHROPIC_API_KEY to environment variables.");
+}
+
+/**
+ * Get the name of the primary model (for debugging)
+ */
+export function getPrimaryModelName(): string {
+  if (deepseek?.chat) return "deepseek/deepseek-chat (OpenRouter)";
+  if (claude?.sonnet) return "claude-sonnet-4-20250514 (Anthropic)";
+  return "unknown";
 }
 
 /**
