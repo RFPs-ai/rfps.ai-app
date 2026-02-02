@@ -5,6 +5,9 @@ import { headers } from "next/headers";
 import { SignOutButton } from "@/components/sign-out-button";
 import { isPreviewDeployment } from "@/lib/preview";
 import { AppProviders } from "@/components/app-providers";
+import { db } from "@/lib/db";
+import { user } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export default async function AppLayout({
   children,
@@ -33,7 +36,17 @@ export default async function AppLayout({
     redirect("/login");
   }
   
-  console.log("[Layout] Rendering with preview:", isPreview, "session:", !!session);
+  // Check if user is admin (only if we have a session)
+  let isAdmin = false;
+  if (session) {
+    const userRecord = await db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
+      columns: { role: true },
+    });
+    isAdmin = userRecord?.role === "admin";
+  }
+  
+  console.log("[Layout] Rendering with preview:", isPreview, "session:", !!session, "isAdmin:", isAdmin);
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,6 +91,14 @@ export default async function AppLayout({
                 >
                   Profile
                 </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-4">
