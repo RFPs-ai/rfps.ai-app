@@ -1,5 +1,6 @@
 import { streamText, createDataStreamResponse, APICallError } from "ai";
 import { getPrimaryModel, getPrimaryModelName, claude, getPrimaryModelBillingInfo } from "@/ai/providers";
+import { getChatExperiment } from "@/ai/experiment";
 import toolsProxy from "@/ai/tools";
 import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
@@ -100,6 +101,7 @@ function wrapToolsForExposureLogging(opts: {
 export async function POST(req: Request) {
   // Skip auth check on PR preview deployments
   const isPreview = isPreviewDeployment();
+  let abKey = "preview";
   if (!isPreview) {
     session = await auth.api.getSession({
     headers: await headers(),
@@ -108,6 +110,9 @@ export async function POST(req: Request) {
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
     }
+
+    abKey = (session.user as any).companyId ?? session.user.id ?? session.user.email ?? "anon";
+  
   }
 
   const { messages } = await req.json();
@@ -121,8 +126,10 @@ export async function POST(req: Request) {
     getUserId: () => session?.user?.id ?? null,
   });
 
+  const exp = getChatExperiment(abKey);
+  
   const result = streamText({
-    model: primaryModel,
+    model: exp.model,
     system: SYSTEM_PROMPT,
     messages,
     tools: toolsProxy,
@@ -147,7 +154,10 @@ export async function POST(req: Request) {
     execute: async (dataStream) => {
       // Send model name as debug info
       if (isDebug) {
-        dataStream.writeMessageAnnotation({ modelName });
+        dataStream.writeMessageAnnotation({ 
+          experiment: exp.experiment,
+          variant: exp.variant,
+          modelName: exp.modelName, });
       }
       result.mergeIntoDataStream(dataStream);
     },
