@@ -20,63 +20,77 @@ export default function ResultsPanel({
   emptyMessage = "No results yet — try a search above",
 }: ResultsPanelProps) {
   return (
-    <div className="space-y-10">
+    <div className="space-y-4">
       {loading && (
-        <div className="text-center text-neutral-500">
-          Searching tenders…
+        <div className="rounded-2xl border border-neutral-200/60 bg-white shadow-sm">
+          <div className="px-6 py-8 text-center text-sm text-slate-500">
+            Searching tenders…
+          </div>
         </div>
       )}
 
       {!loading && results.length === 0 && (
-        <div className="text-center text-neutral-500">
-          {emptyMessage}
+        <div className="rounded-2xl border border-neutral-200/60 bg-white shadow-sm">
+          <div className="px-6 py-8 text-center text-sm text-slate-500">
+            {emptyMessage}
+          </div>
         </div>
       )}
 
-      {results.map((r, i) => (
-        <div
-          key={i}
-          className="border-b border-neutral-800 pb-8"
-        >
-          {/* Title */}
-          <h2 className="text-xl font-medium mb-1 text-neutral-600">
-            {r.title}
-          </h2>
-
-          {/* Snippet */}
-          {r.snippet && (
-            <p className="text-neutral-400 mb-3 leading-relaxed">
-              {r.snippet}
-            </p>
-          )}
-
-          {/* Metadata */}
-          <div className="flex flex-wrap items-center gap-3 text-sm mb-3">
-            <span className="inline-flex items-center rounded-full bg-neutral-900 border border-neutral-800 px-3 py-1 text-neutral-300">
-              {formatSource(r.source)}
-            </span>
-
-            {r.dueDate && (
-              <span className="text-neutral-500">
-                Closing: {r.dueDate}
-              </span>
-            )}
-          </div>
-
-          {/* Link */}
-          <a
-            href={r.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-neutral-300 hover:text-neutral-100 hover:underline"
+      {!loading &&
+        results.map((r, i) => (
+          <article
+            key={i}
+            className="group relative rounded-2xl border border-neutral-200/60 bg-white shadow-sm transition hover:-translate-y-[1px] hover:shadow-md"
           >
-            View original →
-          </a>
-        </div>
-      ))}
+            {/* subtle blue accent bar */}
+            <div className="absolute left-0 top-6 h-12 w-[3px] rounded-full bg-blue-500/70" />
+
+            <div className="p-6 pl-8">
+              {/* Title */}
+              <h2 className="text-[17px] font-semibold leading-snug text-slate-900 transition group-hover:text-blue-600">
+                {r.title}
+              </h2>
+
+              {/* Snippet */}
+              {r.snippet && (
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  {r.snippet}
+                </p>
+              )}
+
+              {/* Metadata */}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  {formatSource(r.source)}
+                </span>
+
+                {r.dueDate && (
+                  <span className="text-xs text-slate-500">
+                    Closing: {r.dueDate}
+                  </span>
+                )}
+              </div>
+
+              {/* Action */}
+              <div className="mt-5">
+                <a
+                  href={r.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  View original
+                  <span className="transition group-hover:translate-x-[1px]">→</span>
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
     </div>
   );
 }
+
 
 function formatSource(source: string) {
   switch (source) {
@@ -86,8 +100,6 @@ function formatSource(source: string) {
       return "Ontario Tenders";
     case "canadabuys":
       return "CanadaBuys";
-    case "merx":
-      return "MERX";
     default:
       return source
         .replace(/_/g, " ")
