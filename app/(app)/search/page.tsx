@@ -586,7 +586,16 @@ export default function SearchPage() {
                                       remarkPlugins={[remarkGfm]}
                                       components={{
                                         a: ({ children, ...props }) => (
-                                          <a {...props} className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer">
+                                          <a 
+                                            {...props} 
+                                            className={`underline hover:opacity-80 transition-opacity ${
+                                              message.role === "user" 
+                                                ? "text-primary-foreground" 
+                                                : "text-primary"
+                                            }`}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                          >
                                             {children}
                                           </a>
                                         ),
