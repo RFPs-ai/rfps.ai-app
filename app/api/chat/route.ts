@@ -1,6 +1,6 @@
 import { streamText, createDataStreamResponse, APICallError } from "ai";
 import { getPrimaryModel, getPrimaryModelName, claude } from "@/ai/providers";
-import { tools } from "@/ai/tools";
+import toolsProxy from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     model: primaryModel,
     system: SYSTEM_PROMPT,
     messages,
-    tools,
+    tools: toolsProxy,
     maxSteps: 5,
   });
 

@@ -55,6 +55,7 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url().optional(),
+    NEXT_PUBLIC_DEBUG: z.string().optional(),
   },
 
   /**
@@ -70,6 +71,7 @@ export const env = createEnv({
 
     // Client-side
     NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+    NEXT_PUBLIC_DEBUG: process.env.NEXT_PUBLIC_DEBUG || process.env.DEBUG,
 
     // AI Providers
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
