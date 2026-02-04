@@ -126,7 +126,7 @@ function formatResultSummary(toolName: string, result: any): string | null {
   
   // Web Crawl
   if (toolName === "webCrawl" && (result.success || result.markdown)) {
-    return "Content extracted";
+    return null;
   }
   
   // Matching
@@ -353,8 +353,8 @@ function ResultDetails({ toolName, result }: { toolName: string; result: any }) 
             <span className="line-clamp-1">{result.url}</span>
           </a>
           {result.markdown && (
-            <div className="text-muted-foreground line-clamp-4 mt-1">
-              {result.markdown.slice(0, 300)}...
+            <div className="text-muted-foreground mt-1 whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+              {result.markdown}
             </div>
           )}
           {result.source && isDebugMode && (
