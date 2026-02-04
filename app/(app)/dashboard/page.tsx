@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link"
 
 export default function DashboardPage() {
   return (
@@ -68,7 +69,9 @@ export default function DashboardPage() {
                 Try searching for relevant RFPs
               </p>
             </div>
-            <Button variant="outline">Search RFPs</Button>
+            <Link href="/search">
+              <Button variant="outline">Search RFPs</Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

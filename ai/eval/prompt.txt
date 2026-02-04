@@ -1,0 +1,322 @@
+You are an RFP ranking engine.
+
+Given a user query and a list of RFPs, return a JSON array sorted by relevance,
+1 being the most relevant and 15 being the least relevant.
+
+Each item must contain:
+{
+  "id": "RFP_ID",
+  "score": 1-15,
+  "matchReason": "short explanation"
+}
+
+User Query:
+Rank all opportunities by how relevant they are to a company specializing in land surveying and geospatial measurement.
+
+RFPs:
+"candidates": [
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://dsbn.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/e801884e-7afa-426b-a00f-93f116810ceb',
+        title: 'Request for Supplier Qualifications Land Surveying Services',
+        documents: [
+            {
+            name: '24029 Request for Supplier Qualifications Land Surveying Services'
+            },
+            { name: 'Post-Addendum 1' },
+            { name: 'Prequalified Vendors to Date' },
+            { name: 'Prequalified Vendors to Date 2' }
+        ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Consulting Services - Professional Services AdministrativeRecreationReal Estate ManagementGeotechnicalTrainingDisaster & Emergency ManagementEconomic DevelopmentOtherAuditingAdvertising/MarketingHomestay ServicesHuman ResourcesArchitecturalDocument AccessibilityPolitics & Civil AffairsHazardous MaterialsRoofingLegalAssociations & ClubsOccupational Hygiene/Industrial HygieneEnergyAuctionInsuranceAsbestos removalActuaryPublic RelationsWriting & TranslationPlanningEngineeringLandscape ArchitectureTravelInformation TechnologySurveying (OLS/Legal) Environmental Goods & Services Soil testing, Boring, Drilling, Geotechnical, Soil ManagementWaste Disposal / RecyclingLandfillWaste ContainerGreen PowerRecycling Containers (green, blue, rain barrel, composter, etc.)Pollution & Odour ControlSewage Pumping StationConsulting ServicesPortable Toilets & Septic Services Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Services',
+        bidType: 'Binding - RFSQ/VOR - Open',
+        bidNumber: '24029',
+        status: 'Open',
+        dueDate: 'Sat Aug 14, 2027 2:00:00 PM (EDT)',
+        description: 'The District School Board of Niagara (hereafter referred to as the DSBN) operates 79 elementary schools and 20 secondary schools in the 12 municipalities of the Niagara Region. We are proud to serve over 36,000 students from JK to Grade 12 each year. In addition, there are other administrative centres throughout this geographical area, including the Education Centre and a Service Centre. The (DSBN) is seeking the services of multiple Professional Land Surveyors to provide surveying services for various school and administrative sites within the Region of Niagara, for a period of three (3) years commencing August 15, 2024 and ending August 14, 2027. Consideration will be given to renew the contract for 2 separate one-year periods ending August 14, 2029. The DSBN will be pre-qualifying multiple firms. Firms that do not meet the original submission deadline are still eligible and encouraged to submit a proposal. Proponents may submit a Pre-qualification proposal at any time throughout the duration of the contract. Additional Firms will be added to the list as they are received and reviewed by DSBN staff. RFSQ 24029 will be reposted under the same bid number numerous times throughout the duration of the contract period in order to keep the bid process open. Once a Proponent has been qualified to provide the services as described herein under Contract 24029 they do not need to respond to further postings of this same Contract number. Firms interested in submitting a response must be qualified to provide professional surveying services in accordance with the Association of Ontario Land Surveyors (AOLS) Regulations and Bylaws. Responses are requested only from firms that feel this type of professional service is within their capabilities to perform the work on time and is suitable to their type of practice.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://reddeer.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/87d9489e-d773-4866-a049-65ce72b6edce',
+        title: 'Landscaping Reinstatement',
+        documents: [
+            { name: '2023-2.pdf' },
+            { name: 'Appendix A - Agreement for Review' }
+        ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Landscaping & Forestry SeedingMulchBedding PlantsArboristSodTree plantingGrass CuttingFertilizerArtificial TurfSupplies & ServicesField RestorationArborist ConsultationTop Soil Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Services',
+        bidType: 'Request for Pre-Qualification',
+        bidNumber: '2023-2',
+        status: 'Open',
+        dueDate: 'Wed Feb 17, 2027 4:00:59 PM (MST) Question Deadline: Fri Feb 12, 2027 4:00:00 PM (MST) Duration in months: 60 Negotiation Type: Refer to project document Condition for Participation: Refer to project document',
+        description: 'The purpose of this RFQL process is to qualify contractors for a pre-qualified supplier roster list to restore lands and properties to their pre-construction condition.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://reddeer.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/57be0cc0-2593-4da7-8b53-5db8831df6d0',
+        title: 'Notice of Intent to Participate - Sourcewell',
+        documents: [ { name: 'Notice of Intent to Participate' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Automotive LubricantsWatercraftGradersLoadersHeavy Trucks TrailersRental/Leasing ServicesTractor ImplementsOff Road EquipmentServicesSupplies & EquipmentExcavatorsLight Vehicles Lawn and Farm Equipment Recreation/Education Paint (Field marking, ice paint, etc.)Arena & Stadium SuppliesPool SuppliesPlayground EquipmentCourt Surface SpecialistsBleachers/StandsPark DevelopmentFitness EquipmentWelding Equipment & SuppliesIce ResurfacerRecreation Flooring / Restoration (Gym Floor, Rubberized, etc.) Equipment Industrial/ManufacturingHeavy EquipmentOtherVehiclesGambling EquipmentParks & Landscaping Information Technology ServicesGISComputer HardwareComputer SoftwareServers/Racks/Data Centre/StorageGPS Products Building Services Fencing Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'Notice of Intent',
+        bidNumber: 'NOI',
+        status: 'Open',
+        dueDate: 'Thu Dec 31, 2026 11:59:59 PM (MST) Duration in months: 12 Negotiation Type: N/A Condition for Participation: N/A',
+        description: 'This annual Notice of Participation is to advise potential suppliers that the City of Red Deer intends to participate in one or more procurements conducted by Sourcewell between January and December 2026.For further information and access current solicitation notices, please review the website at https://proportal.sourcewell-mn.gov/Module/Tenders/enFor General Information on Sourcewell;https://www.sourcewell-mn.gov/'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://reddeer.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/e7d50a8a-c9c7-459a-a9db-becd41e9d5a3',
+        title: 'Notice of Intent to Participate - Government of Alberta',
+        documents: [ { name: 'Notice of Intent to Participate' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Automotive LubricantsRental/Leasing ServicesLight Vehicles Office/School Equipment, Accessories and Supplies Office Supplies/School SuppliesMachines and Supplies',
+            'Signs',
+            'Signs Clothing and Uniform Safety Clothing First Aid Supplies Equipment Electronic components Furniture Office FurnitureShelving & Storage Paper Products Products Audio/Visual/Printing/Photography/Theatre Supplies and Equipment Chemicals & Fuel Fuel/ Propane/Diesel/Gas/ Lubricants Information Technology Computer Software Published Products Signage & Accessories Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'Notice of Intent',
+        bidNumber: 'NOI',
+        status: 'Open',
+        dueDate: 'Thu Dec 31, 2026 11:59:59 PM (MST) Duration in months: 12 Negotiation Type: N/A Condition for Participation: N/A',
+        description: 'This annual Notice of Participation is to advise potential suppliers that the City of Red Deer intends to participate in one or more procurements conducted by Government of Alberta (GoA) January and December 2026For further information and access current solicitation notices, please review the website at https://www.purchasingconnection.ca/To access current solicitation notices, please review the website at https://www.purchasingconnection.ca/For General Information on GoA;https://www.alberta.ca/contract-opportunities-with-the-government-of-alberta'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://reddeer.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/2bca4e06-9979-4d88-b8a2-cf9185181c1f',
+        title: 'Notice of Intent to Participate - Canoe',
+        documents: [ { name: 'Notice of Intent to Participate' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Trade Services Tile and Marble Work, All TypesGlass and GlazingHeating, Ventilating and Air Conditioning (HVAC)PlumbingPlastering DrywallInsulationTrade Services, (Not Otherwise Classified)Painting and WallpaperingCarpet/ FlooringCarpentryElectricalConcreteRoofing and Siding Automotive LubricantsWatercraftGradersLoadersHeavy Trucks TrailersRental/Leasing ServicesTractor ImplementsEmergency VehiclesOff Road EquipmentServicesSupplies & EquipmentExcavatorsLight Vehicles Lawn and Farm EquipmentFire Trucks Office/School Equipment, Accessories and Supplies Office Supplies/School SuppliesMachines and Supplies Machinery and Tools Powered & Non-Powered, Supplies & AccessoriesServices Fire Services SuppliesFire Protection Equipment (Nozzles, Fire extinguisher, props, etc.) Building Operation Supplies and Equipment - ONLY Electrical Utility SuppliesServices Information Technology ServicesGISComputer HardwareComputer SoftwareServers/Racks/Data Centre/StorageGPS Products Construction Infrastructure (',
+            'Traffic Signalization)Affordable HousingParks, Trails & LandscapeOil & Gas Pipe ConstructionRoads, Bridge, SidewalksDrainage',
+            'Supplies (barricades, pylons, speed',
+            'signs, etc.)InfrastructureBuilding & RenovationMunicipal DrainsPower LinesInfrastructure (Wastewater)Restoration Services Remediation ServicesDemolitionHeavy Duty Equipment Equipment Heavy EquipmentFood Services EquipmentOtherVehiclesParks & Landscaping Scientific Instruments & Laboratory Equipment Recreation/Education Playground Equipment Emergency Services Building Services Fencing Chemicals & Fuel Fuel/ Propane/Diesel/Gas/ Lubricants Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'Notice of Intent',
+        bidNumber: 'NOI',
+        status: 'Open',
+        dueDate: 'Thu Dec 31, 2026 11:59:59 PM (MST) Duration in months: 12 Negotiation Type: N/A Condition for Participation: N/A',
+        description: 'This annual Notice of Participation is to advise potential suppliers that the The City of Red Deer intends to participate in one or more procurements conducted by the Canoe Procurement Group of Canada between January and December 2026. For further information and access to the Canoe Procurement Group of Canada’s tender notices, please review the website at https://canoe.bidsandtenders.ca.For General Information on the Canoe Procurement Group of Canada;https://canoeprocurement.ca/'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://reddeer.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/32f6b5fd-1a78-4abd-91d7-013716674e74',
+        title: 'Notice of Intent to Participate - Kinetic GPO',
+        documents: [ { name: 'Notice of Intent to Participate' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Office/School Equipment, Accessories and Supplies Office Supplies/School SuppliesMachines and Supplies Trade Services Heating, Ventilating and Air Conditioning (HVAC)Roofing and Siding Furniture Office Furniture Construction',
+            'Supplies (barricades, pylons, speed',
+            'signs, etc.) Business Services Courier Services, Overnight & Delivery Landscaping & Forestry Small Landscape Equipment (ex. Blowers, push mowers, weed wackers, etc.) Paper Products Products Automotive Supplies & EquipmentLawn and Farm Equipment Building Operation Supplies and Equipment - ONLY Building Materials Surplus Sales Surplus Recreation/Education Recreation Flooring / Restoration (Gym Floor, Rubberized, etc.) Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'Notice of Intent',
+        bidNumber: 'NOI',
+        status: 'Open',
+        dueDate: 'Thu Dec 31, 2026 11:59:59 PM (MST) Duration in months: 12 Negotiation Type: Refer to project document Condition for Participation: Refer to project document',
+        description: 'This annual Notice of Participation is to advise potential suppliers that the The City of Red Deer intends to participate in one or more procurements conducted by Kinetic GPO between January and December 2026. For further information and access current solicitation notices, please review the website at https://www.kineticgpo.ca/kinetic-gpo-solicitations.html To access current solicitation notices, please review the website at https://kineticgpo.bonfirehub.ca/portal/?tab=openOpportunities'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://mdgreenview.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/edfffa7a-03b2-4ad7-b80d-9877c40031eb',
+        title: 'Notice of Intent - Canoe Procurement',
+        documents: [ { name: '2026 NOI Canoe Procurement Group' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Automotive LubricantsGradersLoadersHeavy Trucks TrailersRental/Leasing ServicesTractor ImplementsEmergency VehiclesOff Road EquipmentServicesSupplies & EquipmentExcavatorsLight Vehicles Lawn and Farm EquipmentFire Trucks Chemicals & Fuel Fuel Pumps/ Fuel ManagementFuel/ Propane/Diesel/Gas/ Lubricants Oil & Gas Operations Vacuum/Pressure Truck Services Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'Notice of Intent',
+        bidNumber: 'Greenview-2026-01',
+        status: 'Open',
+        dueDate: 'Thu Dec 31, 2026 11:59:59 PM (MST)',
+        description: 'The Municipal District of Greenview No. 16 intends to participate in one or more procurements conducted by Canoe Procurement Group of Canada for the period of time beginning January 1, 2026, and ending December 31, 2026. For further information and access to the Canoe RFP notices, please visit the Canoe Procurement Portal at https://canoe.bidsandtenders.ca/Module/Tenders/en or www.purchasingconnection.ca. For further information about Canoe, please visit their website at www.canoeprocurement.ca.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://taber.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/6952cb0b-af25-4ba1-819d-7f0299a03362',
+        title: 'Notice of Intent - Cybera ShareIT',
+        documents: [ { name: 'Notice of Intent - Cybera ShareIT' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Information Technology ServicesGISComputer HardwareComputer SoftwareServers/Racks/Data Centre/StorageGPS Products Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'NOI',
+        bidNumber: '26-001',
+        status: 'Open Published Date: Mon Jan 5, 2026 1:30 PM (MST)',
+        dueDate: 'Thu Dec 31, 2026 2:00 PM (MST)',
+        description: 'The Town of Taber intends to participate in one of more procurements conducted by the buying group Cybera ShareIT between January 1, 2026 and December 31, 2026. For further information and access to the buying group Cybera ShareIT tender notices, please review the Alberta Purchasing Connection (APC) website at www.purchasingconnection.ca and the Bonfire website at https://cybera.bonfirehub.ca.For further information about the Cybera ShareIT, please visit https://www.cybera.ca/shareit-procurement/ Please note: This is not a solicitation for bids or responses.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://okotoks.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/0de3263c-441c-491b-969d-7b42318c97de',
+        title: 'Participant of Cybera ShareIT Buying Group',
+        documents: [ { name: '26-701 - Cybera NOI' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Information Technology ServicesGISComputer HardwareComputer SoftwareServers/Racks/Data Centre/StorageGPS Products Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'NOI',
+        bidNumber: '26-701',
+        status: 'Open',
+        dueDate: 'Thu Dec 31, 2026 2:00:59 PM (MST) Registration Deadline: Wed Dec 31, 2025 12:00:00 PM (MST) Question Deadline: Wed Dec 31, 2025 12:00:00 PM (MST)',
+        description: 'The Town of Okotoks intends to participate in one or more procurements conducted by the buying group Cybera ShareIT between January 1, 2026 and December 31, 2026. For further information and access to the buying group Cybera ShareIT tender notices, please review the Alberta Purchasing Connection (APC) website at www.purchasingconnection.ca and the Bonfire website at https://cybera.bonfirehub.caFor further information about the Cybera ShareIT, please visit https://www.cybera.ca/shareit-procurementPlease note: This is not a solicitation for bids or responses.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://stjohns.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/018c09b2-3965-4138-a910-6ff22d6f17c7',
+        title: 'Road Repair Service',
+        documents: [ { name: 'RFSQRF2025138.pdf' }, { name: 'Annex A' } ],
+        contacts: [
+            { name: 'Hynes, Janet', email: 'jhynes@stjohns.ca' },
+            { name: 'Kieley, Sherry', email: 'skieley@stjohns.ca' }
+        ],
+        category: [
+            'Show Categories [+] Road Maintenance',
+            'Supplies (Paint, Glass Beads, Guardrail, etc.)',
+            'Traffic Signalization - Services',
+            'Signs',
+            'Traffic Signalization-Equipment/Parts',
+            'Roadside Safety (Plyons, Baracades, etc.)',
+            'Services (Crack Sealing, Pavement Markings, Guardrail,',
+            'Traffic Control, etc.)',
+            'Snow Clearing',
+            'Light Equipment and Parts (Tamper, Roller, Jackhammer, etc.)',
+            'Construction- Infrastructure (Roads, Bridges, Sidewalks)',
+            'Traffic Signalization-construction only',
+            'Construction- Infrastructure (Roads, Bridges, Sidewalks, etc.) Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Construction',
+        bidType: 'RFSQ (Roster Framework)',
+        bidNumber: 'RFSQRF2025138',
+        status: 'Open',
+        dueDate: 'Wed Oct 31, 2035 12:00 PM (NDT)',
+        description: "The City of St. John's requires a Roster Framework for Road Repair Service. Those submissions that are deemed to be compliant with the pre-qualification process will be considered accepted submissions. The successful pre-qualified respondent(s) will be placed on a Roster which City staff will utilize to solicit competitive quotations for specific projects. Suppliers that qualify to be included in a Road Repair Service Roster will be contacted on a rotating basis for a Second-Stage Competitive Process (otherwise referred to as a Request for Quotations (RFQ)) for Road Repair Service. All requests will be for a lump sum price. Quotes may need to be received in a short timeframe (within 12 to 24 hours as specified for each request). It is anticipated the successful bidder will be given approval to proceed soon after the quote deadline and will be required to begin work as outlined in the RFQ."
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://stjohns.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/d9ae9437-d9b5-4418-a9d4-839925e1ea82',
+        title: 'Snow Removal Services',
+        documents: [
+            { name: 'RFSQRF2023197.pdf' },
+            { name: 'Annex A - Master Framework Agreement' }
+        ],
+        contacts: [
+            { name: 'Hynes, Janet', email: 'jhynes@stjohns.ca' },
+            { name: 'Kieley, Sherry', email: 'skieley@stjohns.ca' }
+        ],
+        category: [
+            'Show Categories [+] Road Maintenance',
+            'Snow Clearing Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Services',
+        bidType: 'RFSQ (Roster Framework)',
+        bidNumber: 'RFSQRF2023197',
+        status: 'Open',
+        dueDate: 'Sat Apr 30, 2033 4:00 PM (NDT) Duration in months: 120 Negotiation Type: Refer to project document Condition for Participation: Refer to project document',
+        description: "The City of St. John's requires a Roster Framework for Snow Removal Services. Those submissions that are deemed to be compliant with the pre-qualification process will be considered accepted submissions. The successful pre-qualified respondent(s) will be placed on a Roster which City staff will utilize to solicit competitive quotations for specific projects.Two Rosters will be put in place: one for small snow removal operations and another for large snow removal operations. Suppliers must submit for each of the operations (small and large) for which they wish to be considered.Suppliers that qualify to be included in a snow removal Roster will be contacted on a rotating basis for a Second-Stage Competitive Process (otherwise referred to as a Request for Quotations (RFQ)) for snow removal. All requests will be for a lump sum price. Quotes may need to be received in a short timeframe (within 12 to 24 hours as specified for each request). It is anticipated the successful bidder will be given approval to proceed soon after the quote deadline and will be required to begin work as outlined in the RFQ."
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://metrovancouver.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/0db78897-6f32-4316-88fb-d16685a0de71',
+        title: 'Hydrothermal Liquefaction Products Management – Research and Development',
+        documents: [ { name: '25-767 SRFEOI Document' } ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Water and Sewer Flow TestingHydrant PaintingWastewater Treatment & ServicesWater Treatment Chemicals Supplies & ServicesWell & Water Related ServicesWatermain SwabbingCathodic ProtectionHydrant InspectionsEmergency WatermainCCTV InspectionNew or Replacement Water/Sewer LinesWater MetersCatch Basin Cleaning Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Services',
+        bidType: 'REOI',
+        bidNumber: '25-767',
+        status: 'Open',
+        dueDate: 'Sun Dec 31, 2028 2:00:00 PM (PST) Duration in months: 36 Negotiation Type: Refer to bid document Condition for Participation: Refer to bid document',
+        description: 'The key objective of this SRFEOI is to identify potential proponents regarding the management and beneficial use of products generated by the Hydrothermal Liquefaction (HTL) Demonstration Facility at Annacis Island Wastewater Treatment Plant (“HTL Demonstration Facility”). The feedstock for the HTL Demonstration Facility is wastewater sludge. The HTL products include biocrude, an aqueous stream, and a solid precipitate. The Corporation wishes to provide samples of the products to researchers and industry who intend to advance scientific knowledge, treatment options, and beneficial uses of the HTL products, toward the ultimate goal of developing management solutions for products from full-scale HTL of sludge. The Corporation welcomes proposals till the end of 2028, and all proposals will be reviewed.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://greatersudbury.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/53b74a4e-99c7-415b-b8c3-b587d396d322',
+        title: 'Request for Supply Arrangement (RFSA) Freightliner Model 114SD Multi-Function Plow Trucks',
+        documents: [
+            { name: 'CPS24-50 - Revised (as per Addendum#1).pdf' },
+            { name: 'CPS24-50 (original).pdf' },
+            { name: 'Appendix A' },
+            { name: 'Supply Arrangement' }
+        ],
+        contacts: [ { name: 'Cole, Adam', email: 'Adam.Cole@greatersudbury.ca' } ],
+        category: [
+            'Show Categories [+] Automotive Heavy Trucks Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Goods',
+        bidType: 'Request for Supply Arrangement (RFSA)',
+        bidNumber: 'CPS24-50',
+        status: 'Open Published Date: Tue Mar 5, 2024 4:00:00 PM (EST)',
+        dueDate: 'Sun Dec 31, 2028 1:30:00 PM (EST) Question Deadline: Fri Dec 15, 2028 11:59:00 PM (EST) Duration in months: 60 Negotiation Type: Refer to project document Condition for Participation: Refer to project document',
+        description: 'CPS24-50, Request for Supply Arrangement (RFSA) for Freightline Model 114SD Multi-Function Plow TrucksRefer to the RFSA'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://greatersudbury.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/25a88205-1fc2-4047-9c30-6e980df887bd',
+        title: 'Request for Prequalification (RFPQ) for Various Water/Wastewater 2024-2027 Capital Projects',
+        documents: [
+            {
+            name: 'ISD24-191 Request for Prequalification (RFPQ) for Various Water/Wastewater 2024-2027 Capital Projects'
+            },
+            { name: 'RFPQ ISD24-191 Submission Form' },
+            { name: 'RFPQ ISD24-1991 Prequalified Bidder List (12-9-2025)' },
+            { name: 'RFPQ ISD24-191 Prequalified Bidder List (8-29-2025)' },
+            { name: 'RFPQ ISD24-191 Prequalified Bidder List (1-23-2025)' },
+            { name: 'RFPQ ISD24-191 Prequalified Bidder List (1-22-2025)' },
+            { name: 'RFPQ ISD24-191 Prequalified Bidder List (1-15-2025)' }
+        ],
+        contacts: [
+            {
+            name: 'Fiegen, Nathalie',
+            email: 'Nathalie.Fiegen@greatersudbury.ca'
+            }
+        ],
+        category: [
+            'Show Categories [+] Water and Sewer Wastewater Treatment & ServicesWell & Water Related ServicesEmergency WatermainNew or Replacement Water/Sewer Lines Construction Infrastructure (Wastewater) Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Construction',
+        bidType: 'Request for Prequalification',
+        bidNumber: 'ISD24-191',
+        status: 'Open Published Date: Fri Nov 15, 2024 3:45:00 PM (EST)',
+        dueDate: 'Fri Dec 31, 2027 1:30:00 PM (EST) Duration in months: 37 Negotiation Type: Refer to Bid Solicitation Document Condition for Participation: Refer to Bid Solicitation Document',
+        description: 'ISD24-191, Request for Prequalification (RFPQ) for Various Water/Wastewater 2024-2027 Capital ProjectsRefer to the RFPQ Document for all details, timelines and/or conditions, if applicable, regarding this procurement.Refer to the RFPQ Document for the Official Point of Contact. All communications shall be done through the "Submit a Question" feature on greatersudbury.bidsandtenders.ca. Verbal communications will not be binding on the City. Bidders shall review the Bid Solicitation and shall promptly report and request clarification of any discrepancy, deficiency, ambiguity, error, inconsistency or omission contained therein through greatersudbury.bidsandtenders.ca.'
+    },
+    {
+        source: 'bids_tenders',
+        sourceUrl: 'https://dsbn.bidsandtenders.ca/Module/Tenders/en/Tender/Detail/31f84299-7e7f-42b3-ae8e-56cc05dad19d',
+        title: 'Door Maintenance, Repairs, Locks, Parts and Supplies',
+        documents: [
+            { name: 'Prequalified Vendors to Date' },
+            {
+            name: '24191 Door Maintenance, Repair, Locks,Parts and Supplies'
+            }
+        ],
+        contacts: [],
+        category: [
+            'Show Categories [+] Building Operation Supplies and Equipment - ONLY LightingElectricalJanitorialAir FiltersDoors/Windows/LocksFabricatedPlumbingWindow CoveringsCabinetsPaintBuilding MaterialsFlooringAppliancesHardware Building Services CleaningGenerator EquipmentPest ControlMats & LinensIndustrial CleaningGraffiti RemovalSprinkler SystemWindow CleaningSecurity & MonitoringFencingOverhead DoorElevatorParking Lighting MaintenanceMovers & StorageProduction & Manufacturing ServicesLocksmithBuilding Automation Facilities, Redevelopment, Trades, Machinery, Construction, Architectural or Engineering Submit a Question Register for this Bid Download Bid'
+        ],
+        classification: 'Services Related To Goods',
+        bidType: 'Binding - Request for Supplier Qualifications',
+        bidNumber: '24191-1',
+        status: 'Open',
+        dueDate: 'Sun Oct 31, 2027 2:00:00 PM (EDT)',
+        description: 'The District School Board of Niagara (hereafter referred to as the DSBN) hereby invites submissions for Door Maintenance & Repairs at various DSBN facilities and Lock and Door Parts and Supplies for pickup or delivery on an as needed basis for a three-year period beginning November 1, 2024 and ending October 31, 2027. Consideration will be given to renew the contract for 3 separate one-year periods ending October 31, 2030. The DSBN will be pre-qualifying multiple suppliers. Contractors/Suppliers will be pre-qualified under two (2) different categories based on scope of work: Category A – Door Maintenance & Repairs Category B – Lock & Door Parts and Supplies The DSBN shall pre-qualify Contractors/Suppliers for one or both categories based on the relevant experience, references provided and mandatory requirements. Each Category is reviewed and selected individually. Contractors/Suppliers that do not meet the original submission deadline are still eligible and encouraged to submit a proposal. Suppliers may submit a Pre-qualification proposal at any time throughout the duration of the contract. Additional Contractors/Supplier(s) will be added to the list as they are received and reviewed by DSBN staff. RFSQ 24191 will be reposted under the same bid number numerous times throughout the duration of the contract period in order to keep the bid process open. Once a Proponent has been qualified to provide the services as described herein under Contract 24191 they do not need to respond to further postings of this same Contract number. Category A Objective: To prequalify Contractors to provide Door Maintenance and Repairs at various DSBN facilities. The types of doors that may require maintenance for this contract will include but not limited to: hollow metal door and hardwarefire doorstoilet partitionsoverhead doorsrolling grills and shutters This is not an all-inclusive list. Other types of repairs and services or equipment may be required. Subject to manufacturer discontinuation of product, DSBN reserves the right to add additional equipment to the list of standard equipment at its sole discretion. The DSBN reserves the right to assign projects on the basis of “best fit” as determined by DSBN at DSBN’s sole discretion based on any criteria DSBN determines to be applicable to the particular project, which may include any of the following: type and/or level of expertise and services required, hourly rates, markup percentage, vendor availability in regards to response time and/or schedule, past experience performing similar work, or any other criteria DSBN considers relevant in terms of selecting a contractor best suited to perform the work. The average work order assigned under this contract will be for small maintenance and repair work – typically less than a day’s worth of labour – although larger jobs (multiple days of labour) will be occasionally required and assigned. The Contractor will be responding primarily to requests for general maintenance and service. The DSBN’s expectation is for contractors to: Respond to general service requests within 24 hoursProvide a timeline of completion within one weekComplete and invoice service request within 30 calendar days of receivingBillable time will be based on hourly rates submitted. All work shall be performed according to the standards of the applicable trades and to the complete satisfaction of the DSBN. The Contractor is required to verify prior to pricing projects that all specified items will be available in time for installation to ensure orderly and timely progress of the work. The DSBN Facility Representative shall approve the use of any materials other than those specified by the DSBN. The Contractor may present alternatives and options to the DSBN for approval. In some cases, the DSBN may supply the materials to be used by the Contractor and in these circumstances no markup shall apply to these materials. The DSBN reserves the right to obtain quotes from multiple pre-qualified Contractors for items, at our discretion, although we are not required to do so and may proceed with a pre-qualified Contractor without further quotes. Where projects or work differs significantly from the scope of work herein, the DSBN reserves the right to utilize a different process and different Contractors. The Contractor may be required from time to time to provide a quote for work required which may not result in the work being awarded. The Contractor shall not invoice the DSBN for this service unless it is assigned purely for assessment purposes. Category B: Objective: To request competitive proposals and establish Suppliers of Record for pickup or delivery of Door and Lock Parts and Supplies. Depending on order turnaround requirements and availability, orders may be picked up at a Supplier’s storefront near the geographical boundaries of the Niagara Region with suitable proximity to DSBN operating locations or may be ordered via purchase or blanket contract order for delivery. The Scope of Work for this contract will include but not be limited to: Interior and exterior doorsDoor hardwareArchitectural hardware (brackets, locksets, etc.)Finishes and frames This is not an all-inclusive list. Other types of parts and supplies may be required. The DSBN reserves the right to purchase parts and supplies on the basis of “best fit” of discount, availability, fees, Storefront proximity to DSBN (where pick up is required) or any other criteria as determined by the DSBN at its sole discretion. Higher dollar value purchases, pre-qualified Suppliers may be given the opportunity to provide quotes. The DSBN reserves the right to obtain quotes from multiple pre-qualified Suppliers for items, at our discretion, although we are not required to do so and may proceed with a pre-qualified Supplier providing the highest minimum discount percentage without further quotes. There is no guarantee that any items will be purchased.'
+    }
+]
