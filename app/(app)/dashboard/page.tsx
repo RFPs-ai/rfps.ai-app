@@ -12,7 +12,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>New Opportunities</CardTitle>
@@ -36,6 +36,16 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Upcoming Deadlines</CardTitle>
+            <CardDescription>Next 7 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">0</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Usage</CardTitle>
             <CardDescription>Next 7 days</CardDescription>
           </CardHeader>
           <CardContent>
