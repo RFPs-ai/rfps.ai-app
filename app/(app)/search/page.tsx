@@ -3,9 +3,11 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useChat, type Message } from "ai/react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2, AlertCircle, RefreshCw, ArrowDown, Sparkles } from "lucide-react";
+import { ToolTimeline } from "@/components/tool-timeline";
 
 // Template prompts for getting started
 const templates = [
@@ -101,8 +103,28 @@ export default function SearchPage() {
       e.preventDefault();
       if (!isLoading && input.trim()) {
         handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+        // Reset textarea height after submit
+        setTimeout(() => {
+          const ref = hasMessages ? conversationInputRef : initialInputRef;
+          if (ref.current) {
+            ref.current.style.height = "auto";
+          }
+        }, 0);
       }
     }
+  };
+
+  // Override handleSubmit to reset textarea height
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleSubmit(e);
+    // Reset textarea height after submit
+    setTimeout(() => {
+      const ref = hasMessages ? conversationInputRef : initialInputRef;
+      if (ref.current) {
+        ref.current.style.height = "auto";
+      }
+    }, 0);
   };
 
   // Auto-focus input when user types printable characters
@@ -163,7 +185,7 @@ export default function SearchPage() {
 
           {/* Centered Input */}
           <div className="w-full max-w-3xl mb-6">
-            <form onSubmit={handleSubmit} className="w-full">
+            <form onSubmit={handleFormSubmit} className="w-full">
               <div className="relative flex items-end w-full max-w-3xl mx-auto">
                 <div className="chat-input-container relative flex items-end w-full bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-border/80 focus-within:border-primary/50 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.15)]">
                   <textarea
@@ -173,7 +195,7 @@ export default function SearchPage() {
                     onKeyDown={handleKeyDown}
                     placeholder="Search for RFPs..."
                     rows={1}
-                    className="flex-1 bg-transparent px-5 py-4 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
+                    className="flex-1 bg-transparent px-5 py-4 pr-12 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
                   />
                   <Button
                     type="submit"
@@ -219,15 +241,14 @@ export default function SearchPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin"
+            className="flex-1 overflow-y-auto px-4 py-6 pb-24 scrollbar-thin"
           >
-            <div className="max-w-3xl mx-auto space-y-6">
+            <div className="max-w-5xl mx-auto space-y-6">
               {messages.map((message: Message, msgIndex: number) => {
-                // Skip rendering empty assistant messages (no parts yet)
-                const hasContent = message.role === "user" || 
-                  (message.parts && message.parts.length > 0);
-                
-                if (!hasContent) return null;
+                // For assistant messages, check if there's actual text content to show
+                const hasTextContent = message.role === "assistant" && message.parts && message.parts.some(p => p.type === "text" && p.text);
+                const hasToolInvocations = message.role === "assistant" && message.parts && message.parts.some(p => p.type === "tool-invocation");
+                const isThinking = message.role === "assistant" && !hasTextContent && !hasToolInvocations;
 
                 return (
                   <div
@@ -242,38 +263,53 @@ export default function SearchPage() {
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted/50 backdrop-blur-sm border border-border/30"
                       }`}
-                    >
+                    >                      {/* Thinking state */}
+                      {isThinking && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
+                      )}
+                                            {/* Tool Timeline */}
+                      {message.role === "assistant" && message.parts && message.parts.some(p => p.type === "tool-invocation") && (
+                        <ToolTimeline
+                          steps={message.parts
+                            .filter(p => p.type === "tool-invocation")
+                            .map(p => {
+                              const toolInvocation = (p as any).toolInvocation;
+                              // Map AI SDK states to our expected states
+                              let mappedState: "pending" | "running" | "complete" | "error" = "running";
+                              if (toolInvocation.state === "result") {
+                                mappedState = "complete";
+                              } else if (toolInvocation.state === "error") {
+                                mappedState = "error";
+                              } else if (toolInvocation.state === "call") {
+                                mappedState = "running";
+                              } else if (toolInvocation.state === "partial-call") {
+                                mappedState = "pending";
+                              }
+                              
+                              return {
+                                toolName: toolInvocation.toolName,
+                                state: mappedState,
+                                args: toolInvocation.args,
+                                result: toolInvocation.result,
+                              };
+                            })}
+                        />
+                      )}
+                      
                       {/* Message parts (text & tool invocations) */}
                       {message.parts?.map((part, index) => {
+                        // Skip tool invocations in inline display - they're in the timeline now
                         if (part.type === "tool-invocation") {
-                          const { toolInvocation } = part;
-                          return (
-                            <div
-                              key={toolInvocation.toolCallId}
-                              className="mb-2 text-sm"
-                            >
-                              {toolInvocation.toolName === "rfpSearch" && (
-                                <Badge variant="secondary" className="bg-background/50 backdrop-blur-sm">
-                                  Searching for RFPs...
-                                </Badge>
-                              )}
-                              {toolInvocation.toolName === "webCrawl" && (
-                                <Badge variant="secondary" className="bg-background/50 backdrop-blur-sm">
-                                  Crawling page...
-                                </Badge>
-                              )}
-                              {toolInvocation.toolName === "matching" && (
-                                <Badge variant="secondary" className="bg-background/50 backdrop-blur-sm">
-                                  Analyzing match...
-                                </Badge>
-                              )}
-                            </div>
-                          );
+                          return null;
                         }
                         if (part.type === "text") {
                           return (
                             <div key={index} className="prose prose-sm dark:prose-invert max-w-none">
                               <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
                                 components={{
                                   a: ({ children, ...props }) => (
                                     <a {...props} className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer">
@@ -288,6 +324,38 @@ export default function SearchPage() {
                                   ul: ({ children }) => <ul className="list-disc pl-4 my-2">{children}</ul>,
                                   ol: ({ children }) => <ol className="list-decimal pl-4 my-2">{children}</ol>,
                                   p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                                  table: ({ children }) => (
+                                    <div className="overflow-x-auto my-4">
+                                      <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+                                        {children}
+                                      </table>
+                                    </div>
+                                  ),
+                                  thead: ({ children }) => (
+                                    <thead className="bg-muted/50">
+                                      {children}
+                                    </thead>
+                                  ),
+                                  tbody: ({ children }) => (
+                                    <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
+                                      {children}
+                                    </tbody>
+                                  ),
+                                  tr: ({ children }) => (
+                                    <tr className="border-b border-gray-300 dark:border-gray-600">
+                                      {children}
+                                    </tr>
+                                  ),
+                                  th: ({ children }) => (
+                                    <th className="px-4 py-2 text-left font-semibold border border-gray-300 dark:border-gray-600">
+                                      {children}
+                                    </th>
+                                  ),
+                                  td: ({ children }) => (
+                                    <td className="px-4 py-2 border border-gray-300 dark:border-gray-600">
+                                      {children}
+                                    </td>
+                                  ),
                                 }}
                               >
                                 {part.text}
@@ -355,8 +423,8 @@ export default function SearchPage() {
           )}
 
           {/* Bottom Input Bar */}
-          <div className="flex-shrink-0 border-t border-border/30 bg-background/50 backdrop-blur-xl px-4 py-4">
-            <form onSubmit={handleSubmit} className="w-full">
+          <div className="absolute bottom-0 left-0 right-0 px-4 py-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
+            <form onSubmit={handleFormSubmit} className="w-full">
               <div className="relative flex items-end w-full max-w-3xl mx-auto">
                 <div className="chat-input-container relative flex items-end w-full bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-border/80 focus-within:border-primary/50 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.15)]">
                   <textarea
@@ -366,7 +434,7 @@ export default function SearchPage() {
                     onKeyDown={handleKeyDown}
                     placeholder="Search for RFPs..."
                     rows={1}
-                    className="flex-1 bg-transparent px-5 py-4 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
+                    className="flex-1 bg-transparent px-5 py-4 pr-12 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
                   />
                   <Button
                     type="submit"

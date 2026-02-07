@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     model: primaryModel,
     system: SYSTEM_PROMPT,
     messages,
-    tools,
+    tools: toolsProxy,
     maxSteps: 5,
     onFinish: async ({ usage }) => {
       if (!usage || !session?.user?.id) return;
