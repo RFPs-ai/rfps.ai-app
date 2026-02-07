@@ -1,11 +1,12 @@
 import { streamText, createDataStreamResponse, APICallError } from "ai";
-import { getPrimaryModel, getPrimaryModelName, claude } from "@/ai/providers";
-import toolsProxy from "@/ai/tools";
+import { getPrimaryModel, getPrimaryModelName, claude, getPrimaryModelBillingInfo } from "@/ai/providers";
+import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { isPreviewDeployment } from "@/lib/preview";
 import { env } from "@/env";
+import { logAiUsage } from "./log_ai_usage";
 
 export const maxDuration = 60;
 
@@ -38,6 +39,8 @@ function getErrorMessage(error: unknown): { message: string; status: number } {
   return { message: "An unexpected error occurred", status: 500 };
 }
 
+let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+
 export async function POST(req: Request) {
   // Skip auth check on PR preview deployments
   const isPreview = isPreviewDeployment();
@@ -55,6 +58,8 @@ export async function POST(req: Request) {
 
   const primaryModel = getPrimaryModel();
   const modelName = getPrimaryModelName();
+  const billing = getPrimaryModelBillingInfo();
+
 
   const result = streamText({
     model: primaryModel,
@@ -62,6 +67,20 @@ export async function POST(req: Request) {
     messages,
     tools: toolsProxy,
     maxSteps: 5,
+    onFinish: async ({ usage }) => {
+      if (!usage || !session?.user?.id) return;
+
+      await logAiUsage({
+        userId: session.user.id,
+        feature: "chat",
+
+        provider: billing.provider,
+        model: billing.model,
+
+        promptTokens: usage.promptTokens ?? 0,
+        completionTokens: usage.completionTokens ?? 0,
+      });
+    },
   });
 
   return createDataStreamResponse({
