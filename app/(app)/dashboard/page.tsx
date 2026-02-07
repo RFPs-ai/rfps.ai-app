@@ -1,8 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link"
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { getAiUsageThisMonth } from "@/app/api/chat/ai_usage";
 
-export default function DashboardPage() {
+
+export default async function DashboardPage() {
+  // const session = await auth.api.getSession({ headers: await headers() });
+  // if (!session) return null; 
+
+  // const usage = await getAiUsageThisMonth(session.user.id);
   return (
     <div className="space-y-6">
       <div>
@@ -46,10 +54,19 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>AI Usage</CardTitle>
-            <CardDescription>Next 7 days</CardDescription>
+            <CardDescription>This month</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">0</p>
+            <p className="text-3xl font-bold">
+              {/* current placeholders until real values can be calculated */}
+              ${0.000000}
+              {/* {usage.totalCostUsd.toFixed(2)} */}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {/* current placeholders until real values can be calculated */}
+              {0} tokens
+              {/* {usage.totalTokens.toLocaleString()} tokens */}
+            </p>
           </CardContent>
         </Card>
       </div>
