@@ -248,6 +248,7 @@ export const searchHistory = pgTable("search_history", {
   filters: json("filters").$type<Record<string, any>>(),
   resultCount: integer("result_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  resultRfpIds: json("result_rfp_ids").$type<string[]>().default([]), // top-k shown (store UUIDs as strings)
 });
 
 // Notifications
