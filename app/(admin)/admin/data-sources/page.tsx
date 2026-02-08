@@ -70,10 +70,10 @@ export default async function DataSourcesPage() {
   const sources = await getDataSources();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Data Sources</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold">Data Sources</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Monitor RFP crawler status and data ingestion
         </p>
       </div>
@@ -99,7 +99,9 @@ export default async function DataSourcesPage() {
               </p>
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -148,6 +150,8 @@ export default async function DataSourcesPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

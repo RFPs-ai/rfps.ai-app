@@ -3,8 +3,13 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
-export function SignOutButton() {
+interface SignOutButtonProps {
+  className?: string;
+}
+
+export function SignOutButton({ className }: SignOutButtonProps) {
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -18,7 +23,7 @@ export function SignOutButton() {
       variant="ghost"
       size="sm"
       onClick={handleSignOut}
-      className="text-muted-foreground hover:text-foreground"
+      className={cn("text-muted-foreground hover:text-foreground", className)}
     >
       <svg
         className="w-4 h-4 mr-2"

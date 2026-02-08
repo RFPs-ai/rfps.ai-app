@@ -153,10 +153,10 @@ export default function EditProfilePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold">
             {isNewProfile ? "Create Company Profile" : "Edit Company Profile"}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             {isNewProfile
               ? "Set up your company information to receive better RFP matches"
               : "Update your company information"}

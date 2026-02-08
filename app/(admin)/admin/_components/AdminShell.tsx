@@ -1,4 +1,4 @@
-import { AdminSidebar } from "./AdminSidebar";
+import { AdminSidebarDesktop } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import type { AdminUser } from "@/lib/rbac";
 
@@ -12,8 +12,11 @@ export function AdminShell({ user, children }: AdminShellProps) {
     <div className="min-h-screen bg-background">
       <AdminHeader user={user} />
       <div className="flex">
-        <AdminSidebar />
-        <main className="flex-1 p-6">{children}</main>
+        {/* Desktop Sidebar - hidden on mobile */}
+        <div className="hidden md:block">
+          <AdminSidebarDesktop />
+        </div>
+        <main className="flex-1 p-4 md:p-6 w-0 min-w-0 overflow-x-auto">{children}</main>
       </div>
     </div>
   );

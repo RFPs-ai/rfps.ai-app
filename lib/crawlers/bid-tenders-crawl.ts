@@ -335,7 +335,7 @@ async function getTenderLinks(page: any): Promise<string[]> {
 
 
     console.log(`Found ${links.length} links`);
-    links.forEach((l) => allLinks.add(l));
+    links.forEach((l: string) => allLinks.add(l));
 
     // find the pagination "Next" button
     const nextBtn = await listingFrame.$("a[aria-label='Next']");

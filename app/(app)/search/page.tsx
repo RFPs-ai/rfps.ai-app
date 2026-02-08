@@ -6,8 +6,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, AlertCircle, RefreshCw, ArrowDown, Sparkles } from "lucide-react";
+import { Send, Loader2, AlertCircle, RefreshCw, ArrowDown, Sparkles, Search, ExternalLink } from "lucide-react";
 import { ToolTimeline } from "@/components/tool-timeline";
+import { RFPCard } from "@/components/rfp-card";
+import type { RFPResult, ChipClickHandler } from "@/types/rfp";
+import { ANALYSIS_PROMPT } from "@/ai/prompts/system";
 
 // Template prompts for getting started
 const templates = [
@@ -28,11 +31,128 @@ const templates = [
   },
 ];
 
+/**
+ * Parse text content and detect RFP card delimiters
+ * Returns array of content segments (text or RFP data)
+ * Progressively renders RFP_CARD blocks as they stream in
+ */
+function parseRFPContent(text: string): Array<{ type: "text" | "rfp"; content: string | RFPResult }> {
+  const segments: Array<{ type: "text" | "rfp"; content: string | RFPResult }> = [];
+  
+  // Regex to match complete [RFP_CARD]...JSON...[/RFP_CARD] blocks
+  const rfpPattern = /\[RFP_CARD\]([\s\S]*?)\[\/RFP_CARD\]/g;
+  
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = rfpPattern.exec(text)) !== null) {
+    // Add text before this match
+    if (match.index > lastIndex) {
+      const textBefore = text.slice(lastIndex, match.index);
+      if (textBefore.trim()) {
+        segments.push({ type: "text", content: textBefore });
+      }
+    }
+    
+    // Try to parse the JSON
+    try {
+      const jsonStr = match[1].trim();
+      const parsed = JSON.parse(jsonStr);
+      
+      // Check if it looks like an RFP result (has title and url)
+      if (parsed.title && parsed.url) {
+        segments.push({ type: "rfp", content: parsed as RFPResult });
+      }
+    } catch (e) {
+      // Invalid JSON, skip it
+    }
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Check for incomplete RFP_CARD block (opening tag without closing tag)
+  const openingTagIndex = text.lastIndexOf('[RFP_CARD]', text.length);
+  const hasIncompleteBlock = openingTagIndex > lastIndex;
+  
+  if (hasIncompleteBlock) {
+    // Add text before the incomplete block
+    const textBeforeIncomplete = text.slice(lastIndex, openingTagIndex);
+    if (textBeforeIncomplete.trim()) {
+      segments.push({ type: "text", content: textBeforeIncomplete });
+    }
+    
+    // Extract partial JSON from the incomplete block
+    const partialJson = text.slice(openingTagIndex + '[RFP_CARD]'.length).trim();
+    
+    // Extract whatever fields we can from the partial JSON using regex
+    const extractField = (fieldName: string, json: string): any => {
+      const stringPattern = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`, 'i');
+      const numberPattern = new RegExp(`"${fieldName}"\\s*:\\s*(\\d+)`, 'i');
+      const arrayPattern = new RegExp(`"${fieldName}"\\s*:\\s*\\[(.*?)\\]`, 'is');
+      
+      const stringMatch = json.match(stringPattern);
+      if (stringMatch) return stringMatch[1];
+      
+      const numberMatch = json.match(numberPattern);
+      if (numberMatch) return parseInt(numberMatch[1]);
+      
+      const arrayMatch = json.match(arrayPattern);
+      if (arrayMatch) {
+        try {
+          const arrayContent = arrayMatch[1];
+          const items = arrayContent.match(/"([^"]*)"/g);
+          return items ? items.map(item => item.replace(/"/g, '')) : [];
+        } catch {
+          return null;
+        }
+      }
+      
+      return null;
+    };
+    
+    // Build partial RFP result with whatever fields are available
+    const partialResult: RFPResult = {
+      title: extractField('title', partialJson) || "",
+      url: extractField('url', partialJson) || "#",
+      snippet: extractField('snippet', partialJson),
+      source: extractField('source', partialJson),
+      naicsCode: extractField('naicsCode', partialJson),
+      region: extractField('region', partialJson),
+      language: extractField('language', partialJson),
+      deadline: extractField('deadline', partialJson),
+      score: extractField('score', partialJson),
+      matchReasons: extractField('matchReasons', partialJson),
+      recommendation: extractField('recommendation', partialJson) as any,
+    };
+    
+    // Only show card if we have at least a title starting to come through
+    if (partialResult.title || partialJson.includes('"title"')) {
+      segments.push({ type: "rfp", content: partialResult });
+    }
+  } else if (lastIndex < text.length) {
+    // Add remaining text only if there's no incomplete block
+    const remaining = text.slice(lastIndex);
+    if (remaining.trim()) {
+      segments.push({ type: "text", content: remaining });
+    }
+  }
+  
+  // If no segments were created, return the original text
+  if (segments.length === 0) {
+    segments.push({ type: "text", content: text });
+  }
+  
+  return segments;
+}
+
 export default function SearchPage() {
-  const { messages, input, handleInputChange, handleSubmit, status, error, reload, setInput } =
+  const { messages, input, handleInputChange, handleSubmit, status, error, reload, setInput, append } =
     useChat({
       api: "/api/chat",
     });
+
+  // Track which RFP is being analyzed for special UI
+  const [analyzingRfp, setAnalyzingRfp] = useState<RFPResult | null>(null);
 
   // Derive states
   const isLoading = status === "submitted" || status === "streaming";
@@ -49,6 +169,70 @@ export default function SearchPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  // Chip click handler - appends semantic query to conversation
+  const handleChipClick: ChipClickHandler = useCallback((query: string) => {
+    if (query && !isLoading) {
+      setInput(query);
+      // Auto-submit after a brief delay to allow user to see the query
+      setTimeout(() => {
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }, 100);
+    }
+  }, [setInput, isLoading]);
+
+  // Analyze handler - triggers AI to deeply analyze a specific RFP
+  // Sets analyzing state to show special UI instead of the prompt
+  const handleAnalyze = useCallback((rfp: RFPResult) => {
+    if (isLoading) {
+      // Prevent execution while streaming, but don't break functionality
+      return;
+    }
+    
+    // Set analyzing state for special UI rendering (store full RFP)
+    setAnalyzingRfp(rfp);
+    
+    // Encode RFP data in the prompt so we can extract it later
+    const rfpData = JSON.stringify({
+      title: rfp.title,
+      url: rfp.url,
+      snippet: rfp.snippet,
+      naicsCode: rfp.naicsCode,
+      region: rfp.region,
+      language: rfp.language,
+      deadline: rfp.deadline,
+      source: rfp.source,
+    });
+    
+    // Get recent conversation context to understand what user was searching for
+    const recentMessages = messages.slice(-5); // Last 5 messages for context
+    const userQueries = recentMessages
+      .filter(m => m.role === 'user' && m.parts?.[0]?.type === 'text')
+      .map(m => (m.parts?.[0] as any)?.text)
+      .filter(text => text && !text.includes('[RFP_DATA:'))
+      .join(' ');
+    
+    // Create analysis prompt
+    const hiddenPrompt = ANALYSIS_PROMPT(rfpData, rfp.title, rfp.url, userQueries);
+    
+    // Use append to send message directly without showing in input
+    append({
+      role: 'user',
+      content: hiddenPrompt,
+    });
+  }, [isLoading, append, messages]);
+
+  // Clear analyzing state when AI starts responding
+  useEffect(() => {
+    if (status === "streaming" && analyzingRfp) {
+      // Clear after a brief delay to ensure the message is visible
+      const timer = setTimeout(() => setAnalyzingRfp(null), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [status, analyzingRfp]);
 
   const scrollToBottom = useCallback((smooth = true) => {
     if (scrollRef.current) {
@@ -157,21 +341,21 @@ export default function SearchPage() {
   }, [hasMessages]);
 
   return (
-    <div className="chat-container flex flex-col h-[calc(100vh-120px)] -mt-4">
+    <div className="chat-container flex flex-col h-[calc(100dvh-120px)] md:h-[calc(100vh-120px)] -mt-2 md:-mt-4">
       {/* Initial State - Centered */}
       {!hasMessages && (
         <div className="flex-1 flex flex-col items-center justify-center px-4 animate-in fade-in duration-500">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-4">
+          <div className="text-center mb-6 md:mb-8 px-2">
+            <div className="inline-flex items-center gap-2 mb-3 md:mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
             </div>
-            <h1 className="text-3xl font-semibold text-foreground mb-2">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground mb-2">
               What can I help you find?
             </h1>
-            <p className="text-muted-foreground text-base max-w-md">
+            <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
               Search for RFPs using natural language. I'll find relevant opportunities and explain why they match.
             </p>
             {modelName && (
@@ -258,7 +442,7 @@ export default function SearchPage() {
                     } animate-in slide-in-from-bottom-2 duration-300`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-5 py-3.5 ${
+                      className={`max-w-[95%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-3.5 ${
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted/50 backdrop-blur-sm border border-border/30"
@@ -299,6 +483,37 @@ export default function SearchPage() {
                         />
                       )}
                       
+                      {/* Show RFP card at start of analysis responses */}
+                      {message.role === "assistant" && msgIndex > 0 && (() => {
+                        const prevMessage = messages[msgIndex - 1];
+                        if (prevMessage?.role === "user" && prevMessage.parts?.[0]?.type === "text") {
+                          const prevText = prevMessage.parts[0].text;
+                          if (prevText.includes('[RFP_DATA:')) {
+                            const dataMatch = prevText.match(/\[RFP_DATA:(.+?)\]/);
+                            
+                            if (dataMatch) {
+                              try {
+                                const rfpData = JSON.parse(dataMatch[1]) as RFPResult;
+                                // Store the URL for duplicate checking
+                                (message as any)._analyzedRfpUrl = rfpData.url;
+                                return (
+                                  <div className="mb-4">
+                                    <RFPCard
+                                      result={rfpData}
+                                      hideActions={true}
+                                      compact={false}
+                                    />
+                                  </div>
+                                );
+                              } catch (e) {
+                                // If parsing fails, don't show card
+                              }
+                            }
+                          }
+                        }
+                        return null;
+                      })()}
+                      
                       {/* Message parts (text & tool invocations) */}
                       {message.parts?.map((part, index) => {
                         // Skip tool invocations in inline display - they're in the timeline now
@@ -306,60 +521,131 @@ export default function SearchPage() {
                           return null;
                         }
                         if (part.type === "text") {
-                          return (
-                            <div key={index} className="prose prose-sm dark:prose-invert max-w-none">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                  a: ({ children, ...props }) => (
-                                    <a {...props} className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer">
-                                      {children}
+                          // Special handling for user messages when analyzing
+                          // Check if this is an analyze prompt by looking for the pattern
+                          if (message.role === "user" && part.text.includes('[RFP_DATA:')) {
+                            // Extract RFP data from the prompt
+                            const dataMatch = part.text.match(/\[RFP_DATA:(.+?)\]/);
+                            
+                            if (dataMatch) {
+                              try {
+                                const rfpData = JSON.parse(dataMatch[1]) as RFPResult;
+                                return (
+                                  <div key={index} className="flex items-center gap-2">
+                                    <Search className="w-4 h-4 flex-shrink-0" />
+                                    <a
+                                      href={rfpData.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm hover:underline flex items-center gap-1.5"
+                                    >
+                                      {rfpData.title}
+                                      <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
-                                  ),
-                                  code: ({ children, ...props }) => (
-                                    <code {...props} className="bg-background/50 px-1.5 py-0.5 rounded text-sm font-mono">
-                                      {children}
-                                    </code>
-                                  ),
-                                  ul: ({ children }) => <ul className="list-disc pl-4 my-2">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal pl-4 my-2">{children}</ol>,
-                                  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                                  table: ({ children }) => (
-                                    <div className="overflow-x-auto my-4">
-                                      <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
-                                        {children}
-                                      </table>
-                                    </div>
-                                  ),
-                                  thead: ({ children }) => (
-                                    <thead className="bg-muted/50">
-                                      {children}
-                                    </thead>
-                                  ),
-                                  tbody: ({ children }) => (
-                                    <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
-                                      {children}
-                                    </tbody>
-                                  ),
-                                  tr: ({ children }) => (
-                                    <tr className="border-b border-gray-300 dark:border-gray-600">
-                                      {children}
-                                    </tr>
-                                  ),
-                                  th: ({ children }) => (
-                                    <th className="px-4 py-2 text-left font-semibold border border-gray-300 dark:border-gray-600">
-                                      {children}
-                                    </th>
-                                  ),
-                                  td: ({ children }) => (
-                                    <td className="px-4 py-2 border border-gray-300 dark:border-gray-600">
-                                      {children}
-                                    </td>
-                                  ),
-                                }}
-                              >
-                                {part.text}
-                              </ReactMarkdown>
+                                  </div>
+                                );
+                              } catch (e) {
+                                // If parsing fails, fall through to normal rendering
+                              }
+                            }
+                          }
+                          
+                          // Parse text for RFP cards
+                          const segments = parseRFPContent(part.text);
+                          
+                          // Get the analyzed RFP URL to skip duplicates
+                          const analyzedUrl = (message as any)._analyzedRfpUrl;
+                          
+                          return (
+                            <div key={index} className="space-y-4">
+                              {segments.map((segment, segIndex) => {
+                                if (segment.type === "rfp") {
+                                  const rfpResult = segment.content as RFPResult;
+                                  
+                                  // Skip if this RFP has the same URL as the manually created card
+                                  if (analyzedUrl && rfpResult.url === analyzedUrl) {
+                                    return null;
+                                  }
+                                  
+                                  // Render RFP card (progressively fills as it streams)
+                                  return (
+                                    <RFPCard
+                                      key={`rfp-${segIndex}`}
+                                      result={rfpResult}
+                                      onChipClick={handleChipClick}
+                                      onAnalyze={handleAnalyze}
+                                      isLoading={isLoading}
+                                    />
+                                  );
+                                }
+                                
+                                // Render text with markdown
+                                return (
+                                  <div key={`text-${segIndex}`} className="prose prose-sm dark:prose-invert max-w-none">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      components={{
+                                        a: ({ children, ...props }) => (
+                                          <a 
+                                            {...props} 
+                                            className={`underline hover:opacity-80 transition-opacity ${
+                                              message.role === "user" 
+                                                ? "text-primary-foreground" 
+                                                : "text-primary"
+                                            }`}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                          >
+                                            {children}
+                                          </a>
+                                        ),
+                                        code: ({ children, ...props }) => (
+                                          <code {...props} className="bg-background/50 px-1.5 py-0.5 rounded text-sm font-mono">
+                                            {children}
+                                          </code>
+                                        ),
+                                        ul: ({ children }) => <ul className="list-disc pl-4 my-2">{children}</ul>,
+                                        ol: ({ children }) => <ol className="list-decimal pl-4 my-2">{children}</ol>,
+                                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                                        table: ({ children }) => (
+                                          <div className="overflow-x-auto my-4">
+                                            <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+                                              {children}
+                                            </table>
+                                          </div>
+                                        ),
+                                        thead: ({ children }) => (
+                                          <thead className="bg-muted/50">
+                                            {children}
+                                          </thead>
+                                        ),
+                                        tbody: ({ children }) => (
+                                          <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
+                                            {children}
+                                          </tbody>
+                                        ),
+                                        tr: ({ children }) => (
+                                          <tr className="border-b border-gray-300 dark:border-gray-600">
+                                            {children}
+                                          </tr>
+                                        ),
+                                        th: ({ children }) => (
+                                          <th className="px-4 py-2 text-left font-semibold border border-gray-300 dark:border-gray-600">
+                                            {children}
+                                          </th>
+                                        ),
+                                        td: ({ children }) => (
+                                          <td className="px-4 py-2 border border-gray-300 dark:border-gray-600">
+                                            {children}
+                                          </td>
+                                        ),
+                                      }}
+                                    >
+                                      {segment.content as string}
+                                    </ReactMarkdown>
+                                  </div>
+                                );
+                              })}
                             </div>
                           );
                         }
@@ -385,7 +671,7 @@ export default function SearchPage() {
               {/* Error state */}
               {error && (
                 <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl px-5 py-3.5 max-w-[85%]">
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl px-4 py-3 md:px-5 md:py-3.5 max-w-[95%] md:max-w-[85%]">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
@@ -423,7 +709,7 @@ export default function SearchPage() {
           )}
 
           {/* Bottom Input Bar */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 py-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
+          <div className="absolute bottom-0 left-0 right-0 px-3 md:px-4 py-3 md:py-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
             <form onSubmit={handleFormSubmit} className="w-full">
               <div className="relative flex items-end w-full max-w-3xl mx-auto">
                 <div className="chat-input-container relative flex items-end w-full bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-border/80 focus-within:border-primary/50 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.15)]">
@@ -434,7 +720,7 @@ export default function SearchPage() {
                     onKeyDown={handleKeyDown}
                     placeholder="Search for RFPs..."
                     rows={1}
-                    className="flex-1 bg-transparent px-5 py-4 pr-12 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
+                    className="flex-1 bg-transparent px-4 py-3 pr-12 md:px-5 md:py-4 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
                   />
                   <Button
                     type="submit"

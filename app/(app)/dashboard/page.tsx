@@ -12,15 +12,15 @@ export default async function DashboardPage() {
 
   // const usage = await getAiUsageThisMonth(session.user.id);
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Welcome to RFPs.ai - Your AI-powered RFP qualification engine
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>New Opportunities</CardTitle>
@@ -79,25 +79,25 @@ export default async function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
+            <div className="flex-1">
               <p className="font-medium">Complete Company Profile</p>
               <p className="text-sm text-muted-foreground">
                 Add your NAICS codes, certifications, and preferences
               </p>
             </div>
-            <Button>Set Up Profile</Button>
+            <Button className="w-full sm:w-auto">Set Up Profile</Button>
           </div>
 
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
+            <div className="flex-1">
               <p className="font-medium">Configure AI Search</p>
               <p className="text-sm text-muted-foreground">
                 Try searching for relevant RFPs
               </p>
             </div>
-            <Link href="/search">
-              <Button variant="outline">Search RFPs</Button>
+            <Link href="/search" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">Search RFPs</Button>
             </Link>
           </div>
         </CardContent>

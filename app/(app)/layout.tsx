@@ -8,6 +8,7 @@ import { AppProviders } from "@/components/app-providers";
 import { db } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({
   children,
@@ -53,7 +54,18 @@ export default async function AppLayout({
       <nav className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4 md:gap-8">
+              {/* Mobile Menu Button */}
+              {!isPreview && session && (
+                <MobileNav
+                  isAdmin={isAdmin}
+                  userName={session.user.name}
+                  userEmail={session.user.email}
+                  userImage={session.user.image}
+                />
+              )}
+              
+              {/* Logo */}
               <Link href="/welcome" className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <svg
@@ -72,6 +84,8 @@ export default async function AppLayout({
                 </div>
                 <h1 className="text-xl font-bold">RFPs.ai</h1>
               </Link>
+              
+              {/* Desktop Navigation Links */}
               <div className="hidden md:flex gap-6">
                 <Link
                   href="/dashboard"
@@ -101,10 +115,13 @@ export default async function AppLayout({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            
+            {/* Right Side - User Info & Sign Out */}
+            <div className="flex items-center gap-2 md:gap-4">
               {!isPreview && session && (
                 <>
-                  <div className="hidden sm:flex items-center gap-2">
+                  {/* Desktop User Info */}
+                  <div className="hidden md:flex items-center gap-2">
                     {session.user.image && (
                       <img
                         src={session.user.image}
@@ -112,23 +129,24 @@ export default async function AppLayout({
                         className="w-8 h-8 rounded-full"
                       />
                     )}
-              <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {session.user.name || session.user.email}
                     </span>
                   </div>
-                  <SignOutButton />
+                  {/* Sign Out - hidden on mobile (available in mobile nav drawer) */}
+                  <SignOutButton className="hidden md:inline-flex" />
                 </>
               )}
               {isPreview && (
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded border">
                   🔍 Preview Mode
-              </span>
+                </span>
               )}
             </div>
           </div>
         </div>
       </nav>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 md:py-8">
         <AppProviders>{children}</AppProviders>
       </main>
     </div>
