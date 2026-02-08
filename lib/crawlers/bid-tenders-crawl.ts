@@ -89,8 +89,8 @@ async function scrapeTender(context: any, url: string): Promise<Tender> {
     // extract document names
     documents = await page.$$eval(
       "#dgDocuments .x-grid3-cell-inner strong",
-      (nodes) =>
-        nodes.map((n) => ({
+      (nodes: HTMLElement[]) =>
+        nodes.map((n: HTMLElement) => ({
           name: (n.textContent || "").replace(/\s+/g, " ").trim(),
         }))
     );
@@ -99,7 +99,7 @@ async function scrapeTender(context: any, url: string): Promise<Tender> {
     documents = [];
   }
 
-  const pageText = await page.$eval("body", (el) => el.textContent || "");
+  const pageText = await page.$eval("body", (el: HTMLElement) => el.textContent || "");
   const cleanText = clean(pageText);
 
   const title =
@@ -138,8 +138,8 @@ async function scrapeTender(context: any, url: string): Promise<Tender> {
   let contacts: { name: string; email?: string }[] = [];
 
   try {
-    contacts = await page.$$eval("a[href^='mailto:']", (links) =>
-      links.map((a) => {
+    contacts = await page.$$eval("a[href^='mailto:']", (links: HTMLElement[]) =>
+      links.map((a: HTMLElement) => {
         const el = a as HTMLAnchorElement;
 
         const email = el.href.replace(/^mailto:/i, "").split("?")[0].trim();
@@ -325,7 +325,7 @@ async function getTenderLinks(page: any): Promise<string[]> {
     // grab all detail-page links on the current listing page
     const links = await listingFrame.$$eval(
       "#bidsTable a[href*='/Tender/Detail']",
-      (as) => as.map((a) => (a as HTMLAnchorElement).href)
+      (as: HTMLElement[]) => as.map((a: HTMLElement) => (a as HTMLAnchorElement).href)
     );
 
     console.log(`Found ${links.length} links`);
@@ -336,7 +336,7 @@ async function getTenderLinks(page: any): Promise<string[]> {
     if (!nextBtn) break;
 
     // stop if Next is disabled
-    const isDisabled = await nextBtn.evaluate((el) => {
+    const isDisabled = await nextBtn.evaluate((el: HTMLElement) => {
       return (
         el.classList.contains("disabled") ||
         el.closest("li")?.classList.contains("disabled")
