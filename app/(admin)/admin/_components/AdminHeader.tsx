@@ -38,7 +38,7 @@ export function AdminHeader({ user, className }: AdminHeaderProps) {
               </div>
               <h1 className="text-lg md:text-xl font-bold truncate">RFPs.ai</h1>
             </Link>
-            <span className="hidden sm:inline-flex text-xs font-medium px-2 py-1 rounded bg-destructive/10 text-destructive border border-destructive/20">
+            <span className="inline-flex text-xs font-medium px-2 py-1 rounded bg-destructive/10 text-destructive border border-destructive/20">
               ADMIN
             </span>
           </div>
@@ -52,7 +52,8 @@ export function AdminHeader({ user, className }: AdminHeaderProps) {
                 admin
               </span>
             </div>
-            <SignOutButton />
+            {/* Sign Out - hidden on mobile (available in admin sidebar drawer) */}
+            <SignOutButton className="hidden md:inline-flex" />
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Shield,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { SignOutButton } from "@/components/sign-out-button";
 
 const navItems = [
   {
@@ -86,8 +88,8 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
         })}
       </nav>
 
-      {/* Footer - Back to App */}
-      <div className="p-4 border-t">
+      {/* Footer - Back to App & Sign Out */}
+      <div className="p-4 border-t space-y-1">
         <Link
           href="/dashboard"
           onClick={onLinkClick}
@@ -96,6 +98,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
           <ArrowLeft className="h-4 w-4" />
           Back to App
         </Link>
+        <SignOutButton className="w-full justify-start px-3" />
       </div>
     </>
   );

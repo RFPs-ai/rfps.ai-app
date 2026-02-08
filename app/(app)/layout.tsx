@@ -121,7 +121,7 @@ export default async function AppLayout({
               {!isPreview && session && (
                 <>
                   {/* Desktop User Info */}
-                  <div className="hidden sm:flex items-center gap-2">
+                  <div className="hidden md:flex items-center gap-2">
                     {session.user.image && (
                       <img
                         src={session.user.image}
@@ -133,8 +133,8 @@ export default async function AppLayout({
                       {session.user.name || session.user.email}
                     </span>
                   </div>
-                  {/* Sign Out - visible on all screen sizes */}
-                  <SignOutButton />
+                  {/* Sign Out - hidden on mobile (available in mobile nav drawer) */}
+                  <SignOutButton className="hidden md:inline-flex" />
                 </>
               )}
               {isPreview && (
