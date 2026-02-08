@@ -71,16 +71,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 max-w-3xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Company Profile</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Company Profile</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Your company information for RFP matching
           </p>
         </div>
-        <Link href="/profile/edit">
-          <Button>
+        <Link href="/profile/edit" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto">
             <Pencil className="mr-2 h-4 w-4" />
             Edit Profile
           </Button>

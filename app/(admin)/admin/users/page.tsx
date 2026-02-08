@@ -69,10 +69,10 @@ export default async function UsersPage() {
   const users = await getUsers();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Users</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold">Users</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Manage user accounts and roles
         </p>
       </div>
@@ -97,7 +97,9 @@ export default async function UsersPage() {
               </p>
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
@@ -146,6 +148,8 @@ export default async function UsersPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
