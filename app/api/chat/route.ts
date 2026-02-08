@@ -1,7 +1,6 @@
 import { streamText, createDataStreamResponse, APICallError } from "ai";
 import { getPrimaryModel, getPrimaryModelName, claude, getPrimaryModelBillingInfo } from "@/ai/providers";
 import { getChatExperiment } from "@/ai/experiment";
-import toolsProxy from "@/ai/tools";
 import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
@@ -117,11 +116,9 @@ export async function POST(req: Request) {
 
   const { messages } = await req.json();
 
-  const primaryModel = getPrimaryModel();
-  const modelName = getPrimaryModelName();
   const billing = getPrimaryModelBillingInfo();
 
-  const toolsProxy = wrapToolsForExposureLogging({
+  const wrappedTools = wrapToolsForExposureLogging({
     tools,
     getUserId: () => session?.user?.id ?? null,
   });
@@ -132,14 +129,14 @@ export async function POST(req: Request) {
     model: exp.model,
     system: SYSTEM_PROMPT,
     messages,
-    tools: toolsProxy,
+    tools: wrappedTools,
     maxSteps: 5,
     onFinish: async ({ usage }) => {
       if (!usage || !session?.user?.id) return;
 
       await logAiUsage({
         userId: session.user.id,
-        feature: "chat",
+        feature: `chat:${exp.experiment}:${exp.variant}`,
 
         provider: billing.provider,
         model: billing.model,
