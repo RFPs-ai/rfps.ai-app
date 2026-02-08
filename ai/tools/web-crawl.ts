@@ -18,6 +18,9 @@ export const webCrawlTool = tool({
       .describe("Output formats to extract"),
   }),
   execute: async ({ url, formats }) => {
+    let firecrawlError: string | null = null;
+    let tavilyError: string | null = null;
+
     // Try Firecrawl first
     if (env.FIRECRAWL_API_KEY) {
       try {
@@ -44,10 +47,13 @@ export const webCrawlTool = tool({
             metadata: data.metadata,
             source: "firecrawl",
           };
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          firecrawlError = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
         }
       } catch (error) {
-        // Fall through to Tavily
-        console.error("Firecrawl failed, falling back to Tavily:", error);
+        firecrawlError = error instanceof Error ? error.message : "Unknown error occurred";
+        console.error("Firecrawl failed:", error);
       }
     }
 
@@ -80,15 +86,34 @@ export const webCrawlTool = tool({
               },
               source: "tavily",
             };
+          } else {
+            tavilyError = result?.error || "Failed to extract content";
           }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          tavilyError = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
         }
       } catch (error) {
+        tavilyError = error instanceof Error ? error.message : "Unknown error occurred";
         console.error("Tavily extraction failed:", error);
       }
     }
 
+    // Build informative error message
+    if (!env.FIRECRAWL_API_KEY && !env.TAVILY_API_KEY) {
+      return {
+        error: "No crawling API keys configured. Please add FIRECRAWL_API_KEY or TAVILY_API_KEY.",
+      };
+    }
+
+    const errors = [];
+    if (firecrawlError) errors.push(`Firecrawl: ${firecrawlError}`);
+    if (tavilyError) errors.push(`Tavily: ${tavilyError}`);
+    
     return {
-      error: "No crawling API keys configured. Please add FIRECRAWL_API_KEY or TAVILY_API_KEY.",
+      error: errors.length > 0 
+        ? `Failed to crawl page. ${errors.join("; ")}`
+        : "Failed to crawl page. Both services returned no data.",
     };
   },
 });

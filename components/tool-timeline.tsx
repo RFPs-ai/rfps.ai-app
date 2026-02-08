@@ -114,8 +114,7 @@ function formatResultSummary(toolName: string, result: any): string | null {
   
   // Content Extract
   if (toolName === "contentExtract" && result.results) {
-    const extracted = result.extractedCount || result.results.filter((r: any) => !r.failed).length;
-    return `Extracted ${extracted} page${extracted !== 1 ? 's' : ''}`;
+    return null;
   }
   
   // QNA Search
@@ -126,7 +125,7 @@ function formatResultSummary(toolName: string, result: any): string | null {
   
   // Web Crawl
   if (toolName === "webCrawl" && (result.success || result.markdown)) {
-    return "Content extracted";
+    return null;
   }
   
   // Matching
@@ -267,7 +266,7 @@ function ResultDetails({ toolName, result }: { toolName: string; result: any }) 
   // Content Extract Results
   if (toolName === "contentExtract" && result.results) {
     return (
-      <div className="mt-2 space-y-1.5">
+      <div className="mt-2 space-y-2">
         {result.source && isDebugMode && (
           <div className="text-xs text-muted-foreground/70 mb-2 font-mono">
             Provider: {result.source}
@@ -287,9 +286,14 @@ function ResultDetails({ toolName, result }: { toolName: string; result: any }) 
               <ExternalLink className="w-3 h-3 group-hover:text-primary" />
               <span className="line-clamp-1">{item.url}</span>
             </a>
-            {item.content && (
-              <div className="text-muted-foreground line-clamp-3 mt-1">
-                {item.content.slice(0, 200)}...
+            {item.failed && item.error && (
+              <div className="text-xs text-destructive mt-1 p-2 bg-destructive/5 rounded border border-destructive/10">
+                {item.error}
+              </div>
+            )}
+            {!item.failed && item.content && isDebugMode && (
+              <div className="text-muted-foreground mt-1 whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+                {item.content}
               </div>
             )}
           </div>
@@ -353,8 +357,8 @@ function ResultDetails({ toolName, result }: { toolName: string; result: any }) 
             <span className="line-clamp-1">{result.url}</span>
           </a>
           {result.markdown && (
-            <div className="text-muted-foreground line-clamp-4 mt-1">
-              {result.markdown.slice(0, 300)}...
+            <div className="text-muted-foreground mt-1 whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+              {result.markdown}
             </div>
           )}
           {result.source && isDebugMode && (
@@ -428,8 +432,17 @@ export function ToolTimeline({ steps }: ToolTimelineProps) {
         const resultSummary = formatResultSummary(step.toolName, step.result);
         const isLast = index === steps.length - 1;
         const isExpanded = expandedSteps.has(index);
-        const hasResult = step.state === "complete" && step.result && !step.result.error;
-        const isClickable = step.state === "complete" || step.state === "error";
+        
+        // Check for errors - including contentExtract where all items failed
+        const hasTopLevelError = step.state === "error" || step.result?.error;
+        const hasContentExtractError = 
+          step.toolName === "contentExtract" && 
+          step.result?.results?.length > 0 && 
+          step.result.results.every((r: any) => r.failed);
+        const hasError = hasTopLevelError || hasContentExtractError;
+        
+        const hasResult = step.state === "complete" && step.result && !hasError;
+        const isClickable = step.state === "complete" || hasError;
         
         return (
           <div key={index} className="flex gap-3 items-center">
@@ -438,21 +451,21 @@ export function ToolTimeline({ steps }: ToolTimelineProps) {
               {/* Icon circle */}
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-300 flex-shrink-0 ${
-                  step.state === "complete"
+                  step.state === "complete" && !step.result?.error
                     ? "bg-green-500/10 border-green-500/30"
-                    : step.state === "error"
+                    : step.state === "error" || step.result?.error
                     ? "bg-red-500/10 border-red-500/30"
                     : step.state === "running"
                     ? `${config.bgColor} ${config.borderColor} animate-pulse`
                     : "bg-muted/10 border-muted/20"
                 }`}
               >
-                {step.state === "complete" ? (
+                {step.state === "complete" && !step.result?.error ? (
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
                 ) : step.state === "running" ? (
                   <Loader2 className={`w-4 h-4 ${config.color} animate-spin`} />
                 ) : (
-                  <Icon className={`w-4 h-4 ${step.state === "error" ? "text-red-500" : config.color}`} />
+                  <Icon className={`w-4 h-4 ${step.state === "error" || step.result?.error ? "text-red-500" : config.color}`} />
                 )}
               </div>
               
@@ -460,7 +473,7 @@ export function ToolTimeline({ steps }: ToolTimelineProps) {
               {!isLast && (
                 <div
                   className={`w-0.5 flex-1 min-h-6 transition-colors duration-300 ${
-                    step.state === "complete"
+                    step.state === "complete" && !step.result?.error
                       ? "bg-green-500/30"
                       : step.state === "running"
                       ? "bg-gradient-to-b from-green-500/30 to-muted/20"
@@ -490,12 +503,12 @@ export function ToolTimeline({ steps }: ToolTimelineProps) {
                   <span className="text-sm font-medium text-foreground flex-shrink-0">
                     {step.state === "complete" ? config.labelComplete : config.labelActive}
                   </span>
-                  {step.state === "complete" && resultSummary && (
+                  {step.state === "complete" && resultSummary && !hasError && (
                     <Badge variant="outline" className="text-xs px-2 py-0 border-green-500/30 text-green-600 dark:text-green-400 flex-shrink-0">
                       {resultSummary}
                     </Badge>
                   )}
-                  {step.state === "error" && (
+                  {hasError && (
                     <Badge variant="destructive" className="text-xs px-2 py-0 flex-shrink-0">
                       Failed
                     </Badge>
@@ -511,7 +524,7 @@ export function ToolTimeline({ steps }: ToolTimelineProps) {
               {/* Expanded details */}
               {isExpanded && (
                 <div className="mt-2 animate-in slide-in-from-top-1 duration-200">
-                  {argsText && isDebugMode && (
+                  {argsText && isDebugMode && step.toolName !== "contentExtract" && (
                     <p className="text-xs text-muted-foreground mb-2">
                       Query: {argsText}
                     </p>

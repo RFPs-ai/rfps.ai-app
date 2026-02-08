@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Pencil, Building2, Globe, FileText, Award, MapPin, Languages } from "lucide-react";
+import { Loader2, Pencil, Building2, Globe, FileText, Award, MapPin, Languages, Inbox } from "lucide-react";
 import { useNAICS } from "@/components/naics-provider";
 
 interface CompanyProfile {
@@ -79,13 +79,22 @@ export default function ProfilePage() {
             Your company information for RFP matching
           </p>
         </div>
-        <Link href="/profile/edit" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto">
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Profile
-          </Button>
-        </Link>
-      </div>
+  <div className="flex gap-2">
+    <Link href="/triage">
+      <Button variant="outline">
+        <Inbox className="mr-2 h-4 w-4" />
+        Triage Inbox
+      </Button>
+    </Link>
+    <Link href="/profile/edit">
+      <Button>
+        <Pencil className="mr-2 h-4 w-4" />
+        Edit Profile
+      </Button>
+    </Link>
+  </div>
+
+      </div >
 
       <Card>
         <CardHeader>
@@ -233,6 +242,6 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }
