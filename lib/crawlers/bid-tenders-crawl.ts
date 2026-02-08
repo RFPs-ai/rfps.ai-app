@@ -91,15 +91,20 @@ async function scrapeTender(context: any, url: string): Promise<Tender> {
       "#dgDocuments .x-grid3-cell-inner strong",
       (nodes: Element[]) =>
         nodes.map((n) => ({
-          name: (n.textContent || "").replace(/\s+/g, " ").trim(),
+          name: (n.textContent ?? "").replace(/\s+/g, " ").trim(),
         }))
     );
+
   } catch {
     // many postings have no documents grid or it may not load—this is fine.
     documents = [];
   }
 
-  const pageText = await page.$eval("body", (el: Element) => el.textContent || "");
+  const pageText = await page.$eval(
+    "body",
+    (el: Element) => el.textContent ?? ""
+  );
+
   const cleanText = clean(pageText);
 
   const title =
@@ -325,8 +330,9 @@ async function getTenderLinks(page: any): Promise<string[]> {
     // grab all detail-page links on the current listing page
     const links: string[] = await listingFrame.$$eval(
       "#bidsTable a[href*='/Tender/Detail']",
-      (as: Element[]) => as.map((a) => (a as HTMLAnchorElement).href)
+      (as: HTMLAnchorElement[]) => as.map((a) => a.href)
     );
+
 
     console.log(`Found ${links.length} links`);
     links.forEach((l: string) => allLinks.add(l));

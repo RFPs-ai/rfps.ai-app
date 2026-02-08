@@ -1,6 +1,6 @@
 import { streamText, createDataStreamResponse, APICallError } from "ai";
 import { getPrimaryModel, getPrimaryModelName, claude, getPrimaryModelBillingInfo } from "@/ai/providers";
-import toolsProxy from "@/ai/tools";
+import { getChatExperiment } from "@/ai/experiment";
 import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
@@ -100,6 +100,7 @@ function wrapToolsForExposureLogging(opts: {
 export async function POST(req: Request) {
   // Skip auth check on PR preview deployments
   const isPreview = isPreviewDeployment();
+  let abKey = "preview";
   if (!isPreview) {
     session = await auth.api.getSession({
     headers: await headers(),
@@ -108,31 +109,34 @@ export async function POST(req: Request) {
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
     }
+
+    abKey = (session.user as any).companyId ?? session.user.id ?? session.user.email ?? "anon";
+  
   }
 
   const { messages } = await req.json();
 
-  const primaryModel = getPrimaryModel();
-  const modelName = getPrimaryModelName();
   const billing = getPrimaryModelBillingInfo();
 
-  const toolsProxy = wrapToolsForExposureLogging({
+  const wrappedTools = wrapToolsForExposureLogging({
     tools,
     getUserId: () => session?.user?.id ?? null,
   });
 
+  const exp = getChatExperiment(abKey);
+  
   const result = streamText({
-    model: primaryModel,
+    model: exp.model,
     system: SYSTEM_PROMPT,
     messages,
-    tools: toolsProxy,
+    tools: wrappedTools,
     maxSteps: 5,
     onFinish: async ({ usage }) => {
       if (!usage || !session?.user?.id) return;
 
       await logAiUsage({
         userId: session.user.id,
-        feature: "chat",
+        feature: `chat:${exp.experiment}:${exp.variant}`,
 
         provider: billing.provider,
         model: billing.model,
@@ -147,7 +151,10 @@ export async function POST(req: Request) {
     execute: async (dataStream) => {
       // Send model name as debug info
       if (isDebug) {
-        dataStream.writeMessageAnnotation({ modelName });
+        dataStream.writeMessageAnnotation({ 
+          experiment: exp.experiment,
+          variant: exp.variant,
+          modelName: exp.modelName, });
       }
       result.mergeIntoDataStream(dataStream);
     },
