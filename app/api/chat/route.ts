@@ -1,11 +1,16 @@
 import { streamText, createDataStreamResponse, APICallError } from "ai";
-import { getPrimaryModel, getPrimaryModelName, claude } from "@/ai/providers";
+import { getPrimaryModel, getPrimaryModelName, claude, getPrimaryModelBillingInfo } from "@/ai/providers";
 import toolsProxy from "@/ai/tools";
+import { tools } from "@/ai/tools";
 import { SYSTEM_PROMPT } from "@/ai/prompts/system";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { isPreviewDeployment } from "@/lib/preview";
 import { env } from "@/env";
+import { logAiUsage } from "./log_ai_usage";
+
+import { db } from "@/lib/db";
+import { searchHistory } from "@/lib/db/schema";
 
 export const maxDuration = 60;
 
@@ -38,13 +43,67 @@ function getErrorMessage(error: unknown): { message: string; status: number } {
   return { message: "An unexpected error occurred", status: 500 };
 }
 
+let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+
+// TODO: rfpSearch must return DB-backed rfps with `id` for exposure logging + P@10 to work.
+// currently won't do anything until then
+function wrapToolsForExposureLogging(opts: {
+  tools: Record<string, any>;
+  getUserId: () => string | null;
+}) {
+  const { tools, getUserId } = opts;
+  const wrapped: Record<string, any> = {};
+
+  for (const [toolName, tool] of Object.entries(tools)) {
+    wrapped[toolName] = {
+      ...tool,
+      execute: async (...args: any[]) => {
+        const res = await tool.execute(...args);
+
+        if (toolName === "rfpSearch") {
+          const userId = getUserId();
+          const rfps = res?.rfps; // future: DB-backed results array with `id`
+
+          // only log when DB ids exist
+          if (!userId || !Array.isArray(rfps) || rfps.length === 0) {
+            return res;
+          }
+
+          const topIds = rfps
+            .slice(0, 10)
+            .map((r: any) => String(r?.id))
+            .filter(Boolean);
+
+          // if no ids, it isn't DB-backed yet
+          if (topIds.length === 0) {
+            return res;
+          }
+
+          await db.insert(searchHistory).values({
+            userId,
+            query: args?.[0]?.query ?? "",
+            // add when filters are implemented
+            resultCount: rfps.length,
+            resultRfpIds: topIds,
+          });
+        }
+
+        return res;
+      },
+    };
+  }
+
+  return wrapped;
+}
+
+
 export async function POST(req: Request) {
   // Skip auth check on PR preview deployments
   const isPreview = isPreviewDeployment();
   if (!isPreview) {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
     if (!session) {
       return new Response("Unauthorized", { status: 401 });
@@ -55,6 +114,12 @@ export async function POST(req: Request) {
 
   const primaryModel = getPrimaryModel();
   const modelName = getPrimaryModelName();
+  const billing = getPrimaryModelBillingInfo();
+
+  const toolsProxy = wrapToolsForExposureLogging({
+    tools,
+    getUserId: () => session?.user?.id ?? null,
+  });
 
   const result = streamText({
     model: primaryModel,
@@ -62,6 +127,20 @@ export async function POST(req: Request) {
     messages,
     tools: toolsProxy,
     maxSteps: 5,
+    onFinish: async ({ usage }) => {
+      if (!usage || !session?.user?.id) return;
+
+      await logAiUsage({
+        userId: session.user.id,
+        feature: "chat",
+
+        provider: billing.provider,
+        model: billing.model,
+
+        promptTokens: usage.promptTokens ?? 0,
+        completionTokens: usage.completionTokens ?? 0,
+      });
+    },
   });
 
   return createDataStreamResponse({

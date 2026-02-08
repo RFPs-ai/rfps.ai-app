@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, json, pgEnum, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, json, pgEnum, uuid, index, numeric } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // Enums
@@ -83,6 +83,25 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),
 });
+
+export const aiUsageEvents = pgTable("ai_usage_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  userId: text("user_id").notNull(),
+
+  feature: text("feature").notNull(), 
+  provider: text("provider").notNull(), 
+  model: text("model").notNull(), 
+
+  promptTokens: integer("prompt_tokens").notNull().default(0),
+  completionTokens: integer("completion_tokens").notNull().default(0),
+  totalTokens: integer("total_tokens").notNull().default(0),
+
+  costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 
 // ================================
 // RFPs.ai Application Tables
@@ -229,6 +248,7 @@ export const searchHistory = pgTable("search_history", {
   filters: json("filters").$type<Record<string, any>>(),
   resultCount: integer("result_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  resultRfpIds: json("result_rfp_ids").$type<string[]>().default([]), // top-k shown (store UUIDs as strings)
 });
 
 // Notifications

@@ -37,12 +37,12 @@ export default function WelcomePage() {
           <div className="absolute top-1/2 -left-40 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
         </div>
 
-        <div className="container mx-auto px-4 py-16 relative">
+        <div className="container mx-auto px-4 py-8 md:py-16 relative">
           {/* Welcome Header */}
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary/10 mb-6">
+          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-primary/10 mb-4 md:mb-6">
               <svg
-                className="w-10 h-10 text-primary"
+                className="w-8 h-8 md:w-10 md:h-10 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -55,16 +55,16 @@ export default function WelcomePage() {
                 />
               </svg>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 px-2">
               Welcome to RFPs.ai, {userName}!
             </h1>
-            <p className="text-xl text-muted-foreground mb-8">
+            <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-8 px-4">
               Your AI-powered assistant for finding and qualifying government RFPs.
               Let&apos;s help you win more contracts.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/dashboard">
-                <Button size="lg" className="h-12 px-8 text-base font-medium">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 px-4">
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto h-12 px-6 md:px-8 text-base font-medium">
                   Go to Dashboard
                   <svg
                     className="w-5 h-5 ml-2"
@@ -81,11 +81,11 @@ export default function WelcomePage() {
                   </svg>
                 </Button>
               </Link>
-              <Link href="/profile">
+              <Link href="/profile" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-12 px-8 text-base font-medium"
+                  className="w-full sm:w-auto h-12 px-6 md:px-8 text-base font-medium"
                 >
                   Set Up Profile
                 </Button>
@@ -94,7 +94,7 @@ export default function WelcomePage() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto mb-8 md:mb-16 px-4">
             <Card className="text-center border-0 shadow-lg bg-card/50 backdrop-blur-sm">
               <CardContent className="pt-8 pb-6">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-green-500/10 mb-4">
@@ -163,7 +163,7 @@ export default function WelcomePage() {
           </div>
 
           {/* Feature Cards */}
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto px-4">
             <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-2">
@@ -348,11 +348,11 @@ export default function WelcomePage() {
           </div>
 
           {/* Getting Started Steps */}
-          <div className="max-w-4xl mx-auto mt-16">
-            <h2 className="text-2xl font-bold text-center mb-8">
+          <div className="max-w-4xl mx-auto mt-8 md:mt-16 px-4">
+            <h2 className="text-xl md:text-2xl font-bold text-center mb-6 md:mb-8">
               Get Started in 3 Simple Steps
             </h2>
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
               <div className="text-center">
                 <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold mb-4">
                   1

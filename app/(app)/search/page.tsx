@@ -341,21 +341,21 @@ export default function SearchPage() {
   }, [hasMessages]);
 
   return (
-    <div className="chat-container flex flex-col h-[calc(100vh-120px)] -mt-4">
+    <div className="chat-container flex flex-col h-[calc(100dvh-120px)] md:h-[calc(100vh-120px)] -mt-2 md:-mt-4">
       {/* Initial State - Centered */}
       {!hasMessages && (
         <div className="flex-1 flex flex-col items-center justify-center px-4 animate-in fade-in duration-500">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-4">
+          <div className="text-center mb-6 md:mb-8 px-2">
+            <div className="inline-flex items-center gap-2 mb-3 md:mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
             </div>
-            <h1 className="text-3xl font-semibold text-foreground mb-2">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground mb-2">
               What can I help you find?
             </h1>
-            <p className="text-muted-foreground text-base max-w-md">
+            <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
               Search for RFPs using natural language. I'll find relevant opportunities and explain why they match.
             </p>
             {modelName && (
@@ -442,7 +442,7 @@ export default function SearchPage() {
                     } animate-in slide-in-from-bottom-2 duration-300`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-5 py-3.5 ${
+                      className={`max-w-[95%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-3.5 ${
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted/50 backdrop-blur-sm border border-border/30"
@@ -671,7 +671,7 @@ export default function SearchPage() {
               {/* Error state */}
               {error && (
                 <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl px-5 py-3.5 max-w-[85%]">
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl px-4 py-3 md:px-5 md:py-3.5 max-w-[95%] md:max-w-[85%]">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
@@ -709,7 +709,7 @@ export default function SearchPage() {
           )}
 
           {/* Bottom Input Bar */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 py-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
+          <div className="absolute bottom-0 left-0 right-0 px-3 md:px-4 py-3 md:py-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
             <form onSubmit={handleFormSubmit} className="w-full">
               <div className="relative flex items-end w-full max-w-3xl mx-auto">
                 <div className="chat-input-container relative flex items-end w-full bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:border-border/80 focus-within:border-primary/50 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.15)]">
@@ -720,7 +720,7 @@ export default function SearchPage() {
                     onKeyDown={handleKeyDown}
                     placeholder="Search for RFPs..."
                     rows={1}
-                    className="flex-1 bg-transparent px-5 py-4 pr-12 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
+                    className="flex-1 bg-transparent px-4 py-3 pr-12 md:px-5 md:py-4 text-base outline-none placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-y-auto scrollbar-thin"
                   />
                   <Button
                     type="submit"

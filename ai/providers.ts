@@ -71,6 +71,28 @@ export const groqClient = env.GROQ_API_KEY
     })
   : null;
 
+  //used only for calculations related to ai usage and tracking
+export function getPrimaryModelBillingInfo(): {
+  provider: string;
+  model: string;
+  } {
+  if (deepseek?.chat) {
+    return {
+      provider: "openrouter",
+      model: "deepseek/deepseek-chat",
+    };
+  }
+
+  if (claude?.sonnet) {
+    return {
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514",
+    };
+  }
+
+  throw new Error("Unknown primary model for billing");
+}
+
 /**
  * Get primary model for reasoning & analysis
  * Uses DeepSeek V3 (via OpenRouter) by default, Claude Sonnet as fallback

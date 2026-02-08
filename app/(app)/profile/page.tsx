@@ -71,29 +71,30 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 max-w-3xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Company Profile</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Company Profile</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Your company information for RFP matching
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/triage">
-            <Button variant="outline">
-              <Inbox className="mr-2 h-4 w-4" />
-              Triage Inbox
-            </Button>
-          </Link>
-          <Link href="/profile/edit">
-            <Button>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Profile
-            </Button>
-          </Link>
-        </div>
-      </div>
+  <div className="flex gap-2">
+    <Link href="/triage">
+      <Button variant="outline">
+        <Inbox className="mr-2 h-4 w-4" />
+        Triage Inbox
+      </Button>
+    </Link>
+    <Link href="/profile/edit">
+      <Button>
+        <Pencil className="mr-2 h-4 w-4" />
+        Edit Profile
+      </Button>
+    </Link>
+  </div>
+
+      </div >
 
       <Card>
         <CardHeader>
@@ -241,6 +242,6 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }
