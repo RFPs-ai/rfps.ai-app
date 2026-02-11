@@ -36,7 +36,7 @@ export async function mem0Recall(params: {
 }) {
   if (!env.MEM0_API_KEY) throw new Error("MEM0_API_KEY not configured");
 
-  const res = await fetch(`${BASE}/v1/memories/search`, {
+  const res = await fetch(`${BASE}/v1/memories/search/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
