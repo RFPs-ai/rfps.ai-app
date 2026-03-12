@@ -1,6 +1,16 @@
 import { chromium } from "playwright";
 import { dedupAndStore, closeStore, Tender } from "../dedupe_and_testing/dedupe-pipeline";
 
+
+/**
+ * IMPORTANT NOTE:
+ *   This crawler requires Playwright and cannot run on Vercel serverless.
+ *   Use admin trigger or local run only.
+ * 
+ * Run:
+ *   npx tsx lib/crawlers/merx-crawl.ts
+ */
+
 const LIST_URL = "https://www.bidsandtenders.com/bid-opportunities/";
 
 // listing pages to search through.
@@ -374,8 +384,7 @@ export async function crawlBidsTendersAndStore() {
 }
 
 async function run() {
-  // keep headless:false while debugging; flip to true once stable
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
 
   const context = await browser.newContext({
     // mimic a standard desktop browser
@@ -412,8 +421,3 @@ async function run() {
   await browser.close();
   await closeStore();
 }
-
-run().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
