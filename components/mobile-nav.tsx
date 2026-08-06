@@ -24,6 +24,8 @@ interface MobileNavProps {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/bids", label: "Bid Opportunities" },
+  { href: "/matches", label: "Matches" },
   { href: "/search", label: "AI Search" },
   { href: "/profile", label: "Profile" },
 ];

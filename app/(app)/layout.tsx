@@ -94,6 +94,12 @@ export default async function AppLayout({
                   Dashboard
                 </Link>
                 <Link
+                  href="/bids"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Bid Opportunities
+                </Link>
+                <Link
                   href="/matches"
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >

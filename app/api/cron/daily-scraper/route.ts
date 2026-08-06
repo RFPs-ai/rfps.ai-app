@@ -2,117 +2,83 @@ import { NextResponse } from 'next/server';
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { dedupAndStore, Tender } from "@/lib/dedupe_and_testing/dedupe-pipeline";
-import { db } from "@/lib/db"; // Assuming drizzle or some db export is here, wait I'll use pg pool as in script
 import { Pool } from "pg";
 import { sendRfpEmail } from "@/lib/email/resend";
+import { mem0Recall } from "@/lib/mem0";
 
-// Reuse the logic from the script
-// In a real prod environment, we would abstract the logic into a service
+const EXTRACTION_PROMPT = `
+You are a procurement research analyst for Nimblox Inc., an Ottawa-based technology and management consultancy.
+You are given the raw HTML text of a web page that contains an RFP (Request for Proposal), tender, or bid opportunity.
 
-const NIMBLOX_PROMPT = `
-You are a procurement research analyst for Nimblox Inc., an Ottawa-based technology and management consultancy. Find OPEN, CURRENTLY-BIDDABLE RFPs, RFQs, RFIs and tenders that Nimblox can realistically win.
+Extract the details of the RFP into a clean JSON object with the following fields:
+- "title": The title of the RFP (e.g., "Website Redesign")
+- "buyerName": The issuing organization (e.g., "Cloverdale Rodeo")
+- "bidNumber": The reference or bid number (if stated, otherwise null)
+- "dueDate": The submission deadline in YYYY-MM-DD format (if stated, otherwise null)
+- "region": The city, province, or region (if stated, otherwise null)
+- "currency": The currency (e.g., "CAD", "USD")
+- "description": A short 1-3 sentence summary of the project scope.
 
-=== DATE FILTER (hard rule) ===
-Only return opportunities whose submission deadline is AFTER today's date.
-Discard anything closed, awarded, cancelled, or with an unverifiable deadline.
-State today's date at the top of your answer.
-
-=== WHO WE ARE (match against this) ===
-Small Canadian consultancy (federal corp, Ottawa). Bilingual EN/FR. Delivery team of 2-4. WordPress/CMS specialists. Also do policy, template and report writing. Comfortable with AODA/WCAG 2.1 AA accessibility requirements. Typical contract size: $6,000 - $120,000 CAD. We do NOT bid on anything requiring bonding, security clearance, or 50+ person teams. We also do evertyhign writng like consultant preparation of RFPs, writing of kits, rewriting of technical dcoumentation
-
-=== WHAT TO LOOK FOR ===
-Solution categories (any of):
-- Website redesign / development / migration (WordPress preferred)
-- Member portals, intranets, resource hubs, searchable directories
-- CMS implementation and content migration
-- Accessibility audits and AODA/WCAG remediation
-- Policy, procedure, template and toolkit development
-- Report writing, editing, plain-language rewriting
-- Digital strategy, needs assessment, engagement/consultation reviews
-
-Buyer types (any of):
-- Municipalities, counties, regional districts, townships
-- Public libraries and library boards
-- Nonprofits, NGOs, foundations, associations
-- Indigenous organizations, First Nations, tribal councils, Indigenous financial institutions
-- Universities, colleges, school boards
-- Credit unions, CDFIs, community lenders
-- Provincial agencies and Crown corporations
-
-Geography, in priority order:
-1. Ontario 2. Rest of Canada 3. United States 4. Global/remote nonprofits
-
-Budget: $5,000 - $150,000 CAD (or USD equivalent). Include ones with no stated budget, but flag them.
-
-=== WHERE TO SEARCH ===
-Sweep public procurement portals and posting sites, including but not limited to: CanadaBuys, MERX, Biddingo, bids&tenders, Bonfire, Ontario Tenders Portal, BC Bid, SEAO, Alberta Purchasing Connection, individual municipal and library procurement pages, SAM.gov, and nonprofit/foundation RFP boards. Also check association and Indigenous-organization websites directly — many post RFPs only on their own site and never hit an aggregator. Those are our best odds.
-
-=== EXCLUDE ===
-- Staff augmentation / body-shop / standing-offer vendor rosters
-- Anything demanding an existing government security clearance or bonding
-- Enterprise platform builds (Salesforce, SAP, Drupal-at-scale, custom apps)
-- Prequalification-only notices with no actual scope
-- Anything already past its closing date
-
-=== OUTPUT FORMAT ===
-Return a single markdown table, one row per opportunity, sorted by deadline (soonest first). Use exactly these columns:
-| Issuing Organization | RFP Title | Ref No. | Sector | Region/Province | Country | Solution Requested | Scope Summary (1 sentence) | Stated Budget | Currency | Deadline (YYYY-MM-DD) | Days Left | Submission Portal | Source URL |
-
-Rules for the table:
-- Every row must have a working Source URL to the live posting. No URL, no row.
-- Write "Not stated" where a value isn't published. Never guess or infer a budget or deadline.
-- Scope Summary must be one sentence, factual, no marketing language.
+Only return valid JSON format. Return an array of objects if there are multiple RFPs on the page, but usually it will just be one.
+Ensure your response starts with \`[\` and ends with \`]\`.
 `;
 
-function parseMarkdownTable(markdown: string): Tender[] {
-  const lines = markdown.split("\\n");
-  let inTable = false;
-  const tenders: Tender[] = [];
-  
-  for (const line of lines) {
-    if (line.trim().startsWith("| Issuing Organization |")) {
-      inTable = true;
-      continue;
-    }
-    if (inTable && line.trim().startsWith("|---")) {
-      continue;
-    }
-    
-    if (inTable && line.trim().startsWith("|")) {
-      const parts = line.split("|").map((p) => p.trim());
-      if (parts.length >= 14) {
-        const urlMatch = parts[14].match(/\\[.*?\\]\\((.*?)\\)/) || [null, parts[14]];
-        let sourceUrl = urlMatch[1] === "Not stated" ? "" : urlMatch[1];
-        if (sourceUrl) {
-            sourceUrl = sourceUrl.replace(/<\\/?[^>]+(>|$)/g, ""); // remove html tags
-        }
-        
-        if (!sourceUrl || sourceUrl === "Not stated") continue;
-
-        tenders.push({
-          source: "canadabuys", // fallback
-          sourceId: parts[3] !== "Not stated" ? parts[3] : \`gen-\${Date.now()}-\${Math.random()}\`,
-          sourceUrl: sourceUrl,
-          title: parts[2] !== "Not stated" ? parts[2] : "Unknown Title",
-          buyerName: parts[1] !== "Not stated" ? parts[1] : undefined,
-          bidNumber: parts[3] !== "Not stated" ? parts[3] : undefined,
-          dueDate: parts[11] !== "Not stated" ? parts[11] : undefined,
-          region: parts[5] !== "Not stated" ? parts[5] : undefined,
-          currency: parts[10] !== "Not stated" ? parts[10] : "CAD",
-          description: parts[8] !== "Not stated" ? parts[8] : undefined,
-        });
-      }
-    } else if (inTable && !line.trim().startsWith("|")) {
-      inTable = false;
-    }
+async function fetchHtml(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const html = await response.text();
+    return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+               .replace(/<[^>]+>/g, ' ')
+               .replace(/\s+/g, ' ')
+               .substring(0, 20000);
+  } catch (error) {
+    console.error(`Failed to fetch ${url}:`, error);
+    return "";
   }
-  return tenders;
+}
+
+async function tavilySearch(query: string): Promise<string[]> {
+  if (!process.env.TAVILY_API_KEY) {
+    console.log("No TAVILY_API_KEY found, falling back to static URL.");
+    return ["https://cloverdalerodeo.com/2026/07/17/rfp-website-redesign-26-07-web/"];
+  }
+
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: process.env.TAVILY_API_KEY,
+        query: query,
+        search_depth: "basic",
+        max_results: 5,
+        days: 3
+      })
+    });
+    
+    if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
+    
+    const data = await res.json();
+    if (data && data.results) {
+      return data.results.map((r: any) => r.url);
+    }
+    return [];
+  } catch (error) {
+    console.error("Tavily search failed:", error);
+    return ["https://cloverdalerodeo.com/2026/07/17/rfp-website-redesign-26-07-web/"];
+  }
 }
 
 export async function GET(request: Request) {
-  // Check authorization for cron
   const authHeader = request.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== \`Bearer \${process.env.CRON_SECRET}\`) {
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -127,30 +93,79 @@ export async function GET(request: Request) {
   });
 
   try {
-    const { text } = await generateText({
-      model: openrouter("deepseek/deepseek-chat"),
-      prompt: NIMBLOX_PROMPT,
-    });
-    
-    const tenders = parseMarkdownTable(text);
-
-    if (tenders.length === 0) {
-      return NextResponse.json({ success: true, matches: 0, message: "No valid tenders found." });
-    }
-
     const client = await pool.connect();
     
-    // Find Nimblox user (or fallback to the first user)
     const res = await client.query('SELECT id, email FROM "user" LIMIT 1');
     if (res.rows.length === 0) {
       client.release();
+      await pool.end();
       return NextResponse.json({ success: false, message: "No users in database." });
     }
     const userId = res.rows[0].id;
     const userEmail = res.rows[0].email;
+
+    let searchContext = "website design, software development, RFP in Canada";
+    try {
+      if (process.env.MEM0_API_KEY) {
+        const memories = await mem0Recall({ userId, query: "What kind of RFPs and locations does the user want?", limit: 3 });
+        if (memories && memories.length > 0) {
+          searchContext = memories.map((m: any) => m.memory).join(". ");
+        }
+      }
+    } catch (e) {
+      console.log("Mem0 recall failed", e);
+    }
+
+    const tavilyQuery = `Open RFP tender request for proposal ${searchContext} ${new Date().getFullYear()}`;
+    const targetUrls = await tavilySearch(tavilyQuery);
+
+    const allTenders: Tender[] = [];
+
+    for (const url of targetUrls) {
+      const htmlText = await fetchHtml(url);
+      if (!htmlText || htmlText.length < 500) continue;
+
+      try {
+        const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-free";
+        const { text } = await generateText({
+          model: openrouter(aiModel),
+          prompt: `${EXTRACTION_PROMPT}\n\n=== RAW CONTENT ===\n${htmlText}`,
+        });
+        
+        const cleanJsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const extractedArray = JSON.parse(cleanJsonStr);
+
+        if (Array.isArray(extractedArray)) {
+          for (const item of extractedArray) {
+            if (!item.title || item.title === "Unknown RFP") continue;
+
+            allTenders.push({
+              source: "AI Web Scraper",
+              sourceId: item.bidNumber || `ai-gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              sourceUrl: url,
+              title: item.title,
+              buyerName: item.buyerName,
+              bidNumber: item.bidNumber,
+              dueDate: item.dueDate,
+              region: item.region,
+              currency: item.currency || "CAD",
+              description: item.description,
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error parsing AI output for ${url}:`, error);
+      }
+    }
+
+    if (allTenders.length === 0) {
+      client.release();
+      await pool.end();
+      return NextResponse.json({ success: true, matches: 0, message: "No valid tenders found." });
+    }
     
     let newMatches = 0;
-    for (const tender of tenders) {
+    for (const tender of allTenders) {
       await dedupAndStore(tender);
       
       const fingerprintRes = await client.query("SELECT id FROM rfps WHERE source_url = $1 LIMIT 1", [tender.sourceUrl]);
@@ -171,7 +186,7 @@ export async function GET(request: Request) {
     client.release();
 
     if (newMatches > 0) {
-      await sendRfpEmail(userEmail, tenders);
+      await sendRfpEmail(userEmail, allTenders);
     }
     
     return NextResponse.json({ success: true, matches: newMatches });

@@ -1,4 +1,3 @@
-import "server-only";
 import { env } from "@/env";
 
 const BASE = "https://api.mem0.ai";

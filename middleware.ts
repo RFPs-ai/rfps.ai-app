@@ -21,11 +21,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     
-    // Redirect root to dashboard
-    if (pathname === "/") {
-      console.log("[Middleware] Redirecting root to /dashboard");
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    // Root is now a public landing page, so no redirect is needed here
     
     // Redirect welcome to dashboard (welcome is protected)
     if (pathname === "/welcome") {

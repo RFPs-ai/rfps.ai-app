@@ -1,200 +1,216 @@
+import dotenv from "dotenv";
+dotenv.config({ path: ".env" });
+
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { dedupAndStore, Tender, closeStore } from "../lib/dedupe_and_testing/dedupe-pipeline";
 import { Pool } from "pg";
-import dotenv from "dotenv";
 import { sendRfpEmail } from "../lib/email/resend";
-
-dotenv.config({ path: ".env" });
+import { mem0Recall } from "../lib/mem0";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// Configure OpenRouter provider using OpenAI compatible endpoint
 const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY || "dummy-key",
   baseURL: 'https://openrouter.ai/api/v1',
 });
 
-const NIMBLOX_PROMPT = `
-You are a procurement research analyst for Nimblox Inc., an Ottawa-based technology and management consultancy. Find OPEN, CURRENTLY-BIDDABLE RFPs, RFQs, RFIs and tenders that Nimblox can realistically win.
+const EXTRACTION_PROMPT = `
+You are a procurement research analyst for Nimblox Inc., an Ottawa-based technology and management consultancy.
+You are given the raw HTML text of a web page that contains an RFP (Request for Proposal), tender, or bid opportunity.
 
-=== DATE FILTER (hard rule) ===
-Only return opportunities whose submission deadline is AFTER today's date.
-Discard anything closed, awarded, cancelled, or with an unverifiable deadline.
-State today's date at the top of your answer.
+Extract the details of the RFP into a clean JSON object with the following fields:
+- "title": The title of the RFP (e.g., "Website Redesign")
+- "buyerName": The issuing organization (e.g., "Cloverdale Rodeo")
+- "bidNumber": The reference or bid number (if stated, otherwise null)
+- "dueDate": The submission deadline in YYYY-MM-DD format (if stated, otherwise null)
+- "region": The city, province, or region (if stated, otherwise null)
+- "currency": The currency (e.g., "CAD", "USD")
+- "description": A short 1-3 sentence summary of the project scope.
 
-=== WHO WE ARE (match against this) ===
-Small Canadian consultancy (federal corp, Ottawa). Bilingual EN/FR. Delivery team of 2-4. WordPress/CMS specialists. Also do policy, template and report writing. Comfortable with AODA/WCAG 2.1 AA accessibility requirements. Typical contract size: $6,000 - $120,000 CAD. We do NOT bid on anything requiring bonding, security clearance, or 50+ person teams. We also do evertyhign writng like consultant preparation of RFPs, writing of kits, rewriting of technical dcoumentation
-
-=== WHAT TO LOOK FOR ===
-Solution categories (any of):
-- Website redesign / development / migration (WordPress preferred)
-- Member portals, intranets, resource hubs, searchable directories
-- CMS implementation and content migration
-- Accessibility audits and AODA/WCAG remediation
-- Policy, procedure, template and toolkit development
-- Report writing, editing, plain-language rewriting
-- Digital strategy, needs assessment, engagement/consultation reviews
-
-Buyer types (any of):
-- Municipalities, counties, regional districts, townships
-- Public libraries and library boards
-- Nonprofits, NGOs, foundations, associations
-- Indigenous organizations, First Nations, tribal councils, Indigenous financial institutions
-- Universities, colleges, school boards
-- Credit unions, CDFIs, community lenders
-- Provincial agencies and Crown corporations
-
-Geography, in priority order:
-1. Ontario 2. Rest of Canada 3. United States 4. Global/remote nonprofits
-
-Budget: $5,000 - $150,000 CAD (or USD equivalent). Include ones with no stated budget, but flag them.
-
-=== WHERE TO SEARCH ===
-Sweep public procurement portals and posting sites, including but not limited to: CanadaBuys, MERX, Biddingo, bids&tenders, Bonfire, Ontario Tenders Portal, BC Bid, SEAO, Alberta Purchasing Connection, individual municipal and library procurement pages, SAM.gov, and nonprofit/foundation RFP boards. Also check association and Indigenous-organization websites directly — many post RFPs only on their own site and never hit an aggregator. Those are our best odds.
-
-=== EXCLUDE ===
-- Staff augmentation / body-shop / standing-offer vendor rosters
-- Anything demanding an existing government security clearance or bonding
-- Enterprise platform builds (Salesforce, SAP, Drupal-at-scale, custom apps)
-- Prequalification-only notices with no actual scope
-- Anything already past its closing date
-
-=== OUTPUT FORMAT ===
-Return a single markdown table, one row per opportunity, sorted by deadline (soonest first). Use exactly these columns:
-| Issuing Organization | RFP Title | Ref No. | Sector | Region/Province | Country | Solution Requested | Scope Summary (1 sentence) | Stated Budget | Currency | Deadline (YYYY-MM-DD) | Days Left | Submission Portal | Source URL |
-
-Rules for the table:
-- Every row must have a working Source URL to the live posting. No URL, no row.
-- Write "Not stated" where a value isn't published. Never guess or infer a budget or deadline.
-- Scope Summary must be one sentence, factual, no marketing language.
+Only return valid JSON format. Return an array of objects if there are multiple RFPs on the page, but usually it will just be one.
+Ensure your response starts with \`[\` and ends with \`]\`.
 `;
 
-function parseMarkdownTable(markdown: string): Tender[] {
-  const lines = markdown.split("\n");
-  let inTable = false;
-  const tenders: Tender[] = [];
-  
-  for (const line of lines) {
-    if (line.trim().startsWith("| Issuing Organization |")) {
-      inTable = true;
-      continue; // Skip header
-    }
-    if (inTable && line.trim().startsWith("|---")) {
-      continue; // Skip separator
-    }
-    
-    if (inTable && line.trim().startsWith("|")) {
-      const parts = line.split("|").map((p) => p.trim());
-      // parts[0] is empty because of leading |
-      if (parts.length >= 14) {
-        const urlMatch = parts[14].match(/\[.*?\]\((.*?)\)/) || [null, parts[14]];
-        let sourceUrl = urlMatch[1] === "Not stated" ? "" : urlMatch[1];
-        if (sourceUrl) {
-            sourceUrl = sourceUrl.replace(/<\/?[^>]+(>|$)/g, ""); // remove html tags
-        }
-        
-        if (!sourceUrl || sourceUrl === "Not stated") continue;
-
-        tenders.push({
-          source: "canadabuys", // Default fallback if can't determine
-          sourceId: parts[3] !== "Not stated" ? parts[3] : `gen-${Date.now()}-${Math.random()}`,
-          sourceUrl: sourceUrl,
-          title: parts[2] !== "Not stated" ? parts[2] : "Unknown Title",
-          buyerName: parts[1] !== "Not stated" ? parts[1] : undefined,
-          bidNumber: parts[3] !== "Not stated" ? parts[3] : undefined,
-          dueDate: parts[11] !== "Not stated" ? parts[11] : undefined,
-          region: parts[5] !== "Not stated" ? parts[5] : undefined,
-          currency: parts[10] !== "Not stated" ? parts[10] : "CAD",
-          description: parts[8] !== "Not stated" ? parts[8] : undefined,
-        });
-      }
-    } else if (inTable && !line.trim().startsWith("|")) {
-      // End of table
-      inTable = false;
-    }
+async function fetchHtml(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const html = await response.text();
+    return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+               .replace(/<[^>]+>/g, ' ')
+               .replace(/\s+/g, ' ')
+               .substring(0, 20000); // 20k chars is plenty for Gemini flash
+  } catch (error) {
+    console.error(`Failed to fetch ${url}:`, error);
+    return "";
   }
-  return tenders;
+}
+
+async function tavilySearch(query: string): Promise<string[]> {
+  if (!process.env.TAVILY_API_KEY) {
+    console.log("No TAVILY_API_KEY found, falling back to static URL.");
+    return ["https://cloverdalerodeo.com/2026/07/17/rfp-website-redesign-26-07-web/"];
+  }
+
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: process.env.TAVILY_API_KEY,
+        query: query,
+        search_depth: "basic",
+        max_results: 5,
+        days: 3 // Only very recent postings
+      })
+    });
+    
+    if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
+    
+    const data = await res.json();
+    if (data && data.results) {
+      return data.results.map((r: any) => r.url);
+    }
+    return [];
+  } catch (error) {
+    console.error("Tavily search failed:", error);
+    return ["https://cloverdalerodeo.com/2026/07/17/rfp-website-redesign-26-07-web/"];
+  }
 }
 
 async function main() {
-  console.log("Starting daily AI scraper for Nimblox...");
+  console.log("Starting daily AI scraper for real RFPs...");
 
-  // Generate RFPs using OpenRouter
+  const client = await pool.connect();
+  
+  // Find Nimblox user (or fallback to the first user for demo purposes)
+  const res = await client.query('SELECT id, email FROM "user" LIMIT 1');
+  if (res.rows.length === 0) {
+    console.log("No users in database to associate RFPs with.");
+    client.release();
+    return;
+  }
+  const userId = res.rows[0].id;
+  const userEmail = res.rows[0].email;
+
+  // 1. Fetch User Preferences from Mem0
+  let searchContext = "website design, software development, RFP in Canada";
   try {
-    const { text } = await generateText({
-      // DeepSeek via OpenRouter (or swap with any free model like google/gemini-2.5-flash-free)
-      model: openrouter("deepseek/deepseek-chat"),
-      prompt: NIMBLOX_PROMPT,
-    });
-    
-    console.log("Generated text from AI:\n", text);
-    
-    const tenders = parseMarkdownTable(text);
-    console.log(`Parsed ${tenders.length} tenders from AI response.`);
+    if (process.env.MEM0_API_KEY) {
+      const memories = await mem0Recall({ userId, query: "What kind of RFPs and locations does the user want?", limit: 3 });
+      if (memories && memories.length > 0) {
+        searchContext = memories.map((m: any) => m.memory).join(". ");
+        console.log("Retrieved Mem0 preferences:", searchContext);
+      }
+    }
+  } catch (e) {
+    console.log("Mem0 recall failed or not configured, using default context.", e);
+  }
 
-    if (tenders.length === 0) {
-      console.log("No valid tenders found in table. Exiting.");
-      return;
+  // 2. Search Tavily for URLs based on Mem0 context
+  const tavilyQuery = `Open RFP tender request for proposal ${searchContext} ${new Date().getFullYear()}`;
+  console.log("Tavily Search Query:", tavilyQuery);
+  const targetUrls = await tavilySearch(tavilyQuery);
+  console.log(`Tavily found ${targetUrls.length} URLs to scrape.`);
+
+  const allTenders: Tender[] = [];
+
+  // 3. Scrape and Extract with OpenRouter (Gemini Flash Free)
+  for (const url of targetUrls) {
+    console.log(`Scraping: ${url}`);
+    const htmlText = await fetchHtml(url);
+    if (!htmlText || htmlText.length < 500) {
+      console.log(`Skipping ${url}, insufficient content.`);
+      continue;
     }
 
-    // Process and store in DB
-    const client = await pool.connect();
-    
-    // Find Nimblox user (or fallback to the first user for demo purposes)
-    const res = await client.query('SELECT id, email FROM "user" LIMIT 1');
-    if (res.rows.length === 0) {
-      console.log("No users in database to associate RFPs with.");
-      client.release();
-      return;
-    }
-    const userId = res.rows[0].id;
-    const userEmail = res.rows[0].email;
-    
-    let newMatches = 0;
-    for (const tender of tenders) {
-      const status = await dedupAndStore(tender);
+    console.log(`Extracting data with AI (Gemini 2.5 Flash Free)...`);
+    try {
+      const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-free";
+      const { text } = await generateText({
+        model: openrouter(aiModel),
+        prompt: `${EXTRACTION_PROMPT}\n\n=== RAW CONTENT ===\n${htmlText}`,
+      });
       
-      // Get the fingerprint to link to the user
-      const fingerprintRes = await client.query("SELECT id FROM rfps WHERE source_url = $1 LIMIT 1", [tender.sourceUrl]);
-      if (fingerprintRes.rows.length > 0) {
-        const rfpId = fingerprintRes.rows[0].id;
-        
-        // Ensure userRfp exists
-        const userRfpCheck = await client.query("SELECT id FROM user_rfps WHERE user_id = $1 AND rfp_id = $2", [userId, rfpId]);
-        if (userRfpCheck.rows.length === 0) {
-          await client.query(
-            "INSERT INTO user_rfps (user_id, rfp_id, status, relevance_score) VALUES ($1, $2, 'new', 95)",
-            [userId, rfpId]
-          );
-          newMatches++;
+      const cleanJsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      const extractedArray = JSON.parse(cleanJsonStr);
+
+      if (Array.isArray(extractedArray)) {
+        for (const item of extractedArray) {
+          if (!item.title || item.title === "Unknown RFP") continue;
+          
+          allTenders.push({
+            source: "AI Web Scraper",
+            sourceId: item.bidNumber || `ai-gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            sourceUrl: url,
+            title: item.title,
+            buyerName: item.buyerName,
+            bidNumber: item.bidNumber,
+            dueDate: item.dueDate,
+            region: item.region,
+            currency: item.currency || "CAD",
+            description: item.description,
+          });
         }
       }
+    } catch (error) {
+      console.error(`Error parsing AI output for ${url}:`, error);
     }
-    
-    client.release();
-    console.log(`Inserted ${newMatches} new matches for user ${userId}`);
-
-    // Send email digest if new matches found
-    if (newMatches > 0) {
-      console.log("Sending email digest...");
-      if (typeof sendRfpEmail === "function") {
-          await sendRfpEmail(userEmail, tenders);
-      } else {
-          console.log("[Mock Email] Digest email would be sent to", userEmail);
-      }
-      console.log("Email processing finished.");
-    }
-    
-  } catch (error) {
-    console.error("Error during scraping:", error);
-  } finally {
-    await closeStore();
-    await pool.end();
   }
+
+  console.log(`Extracted ${allTenders.length} tenders total.`);
+
+  if (allTenders.length === 0) {
+    console.log("No valid tenders found. Exiting.");
+    client.release();
+    await pool.end();
+    return;
+  }
+
+  let newMatches = 0;
+  for (const tender of allTenders) {
+    const status = await dedupAndStore(tender);
+    
+    // Get the fingerprint to link to the user
+    const fingerprintRes = await client.query("SELECT id FROM rfps WHERE source_url = $1 LIMIT 1", [tender.sourceUrl]);
+    if (fingerprintRes.rows.length > 0) {
+      const rfpId = fingerprintRes.rows[0].id;
+      
+      // Ensure userRfp exists
+      const userRfpCheck = await client.query("SELECT id FROM user_rfps WHERE user_id = $1 AND rfp_id = $2", [userId, rfpId]);
+      if (userRfpCheck.rows.length === 0) {
+        await client.query(
+          "INSERT INTO user_rfps (user_id, rfp_id, status, relevance_score) VALUES ($1, $2, 'new', 95)",
+          [userId, rfpId]
+        );
+        newMatches++;
+      }
+    }
+  }
+  
+  client.release();
+  console.log(`Inserted ${newMatches} new matches for user ${userId}`);
+
+  // Send email digest if new matches found
+  if (newMatches > 0) {
+    console.log("Sending email digest...");
+    if (typeof sendRfpEmail === "function") {
+        await sendRfpEmail(userEmail, allTenders);
+    }
+  }
+  
+  await closeStore();
+  await pool.end();
 }
 
 main().catch(console.error);
