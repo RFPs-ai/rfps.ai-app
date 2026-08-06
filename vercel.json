@@ -7,7 +7,7 @@
   "regions": ["iad1"],
   "crons": [
     {
-      "path": "/api/cron",
+      "path": "/api/cron/daily-scraper",
       "schedule": "0 0 * * *"
     }
   ],
