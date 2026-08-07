@@ -18,7 +18,7 @@ const pool = new Pool({
 });
 
 export type Tender = {
-  source: "bids_tenders" | "ontario_tenders" | "canadabuys" | "merx";
+  source: "bids_tenders" | "ontario_tenders" | "canadabuys" | "merx" | "AI Web Scraper";
 
   // maps to rfps.source_id (an ID from the source site, if available)
   sourceId: string;

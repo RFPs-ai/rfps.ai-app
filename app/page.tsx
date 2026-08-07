@@ -141,9 +141,9 @@ export default async function LandingPage() {
                   </CardContent>
                   
                   <CardFooter className="pt-4 border-t mt-auto">
-                    <Link href="/signup" className="w-full">
+                    <Link href={"/rfp/" + rfp.id} className="w-full">
                       <Button variant="secondary" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                        Sign in to View Details
+                        View Full Details
                       </Button>
                     </Link>
                   </CardFooter>
