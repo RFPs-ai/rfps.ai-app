@@ -8,18 +8,26 @@ import { mem0Recall } from "@/lib/mem0";
 
 const EXTRACTION_PROMPT = `
 You are a procurement research analyst for RFPs.ai, an automated RFP discovery platform.
-You are given the raw HTML text of a web page that contains an RFP (Request for Proposal), tender, or bid opportunity.
+You are given the raw HTML text of a web page that contains one or more RFPs, tenders, or bid opportunities.
 
-Extract the details of the RFP into a clean JSON object with the following fields:
+Extract the details of the RFP into a clean JSON object (or JSON array of objects if multiple are present) with the following fields:
 - "title": The title of the RFP (e.g., "Website Redesign")
 - "buyerName": The issuing organization (e.g., "Cloverdale Rodeo")
 - "bidNumber": The reference or bid number (if stated, otherwise null)
 - "dueDate": The submission deadline in YYYY-MM-DD format (if stated, otherwise null)
+- "publishedAt": The publication date in YYYY-MM-DD format (if stated, otherwise null)
 - "region": The city, province, or region (if stated, otherwise null)
 - "currency": The currency (e.g., "CAD", "USD")
-- "description": A short 1-3 sentence summary of the project scope.
+- "description": A short summary of the project scope.
+- "sourceUrl": The specific absolute detail link or URL for this RFP on the page. If the page is a list or summary page, look for the direct details link for this RFP. If no specific link exists, return null.
+- "categories": An array of category/classification strings (e.g. ["Fleet - Automotive/Trucks", "Heavy Equipment", "Shop Supplies"])
+- "documents": An array of document objects: [{"name": "document name", "url": "document download url if stated", "date": "document upload/creation date YYYY-MM-DD if stated"}]
+- "contacts": An array of procurement/purchasing contacts: [{"name": "Contact Name", "email": "contact@domain.com"}]
+- "tradeAgreements": An array of applicable trade agreements (e.g. ["CETA", "CFTA"])
+- "duration": The project or negotiation duration (e.g. "120 months", "3 years", "Not Applicable")
+- "conditions": Conditions for participation or qualification criteria (e.g. "Refer to project document", "Online Submissions Only")
 
-Only return valid JSON format. Return an array of objects if there are multiple RFPs on the page, but usually it will just be one.
+Only return valid JSON. Do not include any markdown format other than the json block.
 `;
 
 const MATCHMAKING_PROMPT = `
@@ -141,14 +149,21 @@ export async function GET(request: Request) {
             allTenders.push({
               source: "AI Web Scraper",
               sourceId: item.bidNumber || ("ai-gen-" + Date.now() + "-" + Math.floor(Math.random() * 1000)),
-              sourceUrl: url,
+              sourceUrl: item.sourceUrl || url,
               title: item.title,
               buyerName: item.buyerName,
               bidNumber: item.bidNumber,
               dueDate: item.dueDate,
+              publishedAt: item.publishedAt,
               region: item.region,
               currency: item.currency || "CAD",
               description: item.description,
+              category: item.categories || [],
+              documents: item.documents || [],
+              contacts: item.contacts || [],
+              tradeAgreements: item.tradeAgreements || [],
+              duration: item.duration || null,
+              conditions: item.conditions || null,
             });
           }
         }

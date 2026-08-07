@@ -180,6 +180,14 @@ export const rfps = pgTable(
     deadlineIntent: timestamp("deadline_intent"),
     deadlineSubmission: timestamp("deadline_submission"),
 
+    // Rich Content
+    categories: json("categories").$type<string[]>().default([]),
+    documents: json("documents").$type<{name: string, url?: string, date?: string}[]>().default([]),
+    purchasingAgents: json("purchasing_agents").$type<{name: string, email?: string}[]>().default([]),
+    tradeAgreements: json("trade_agreements").$type<string[]>().default([]),
+    duration: text("duration"),
+    conditions: text("conditions"),
+
     // Deduplication
     fingerprint: text("fingerprint").notNull().unique(),
 

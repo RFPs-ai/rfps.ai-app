@@ -48,7 +48,7 @@ export type Tender = {
 
   description?: string;
 
-  documents?: { name: string }[];
+  documents?: { name: string; url?: string; date?: string }[];
   contacts?: { name: string; email?: string }[];
 
   naicsCode?: string;
@@ -60,6 +60,9 @@ export type Tender = {
   currency?: string;
   setAside?: string;
   requiredCertifications?: string[];
+  tradeAgreements?: string[];
+  duration?: string;
+  conditions?: string;
 };
 
 
@@ -135,7 +138,7 @@ export async function dedupAndStore(tender: Tender) {
   try {
     // check if fingerprint exists
     const existing = await client.query(
-      `select fingerprint from rfps where fingerprint = $1`,
+      `select id, fingerprint from rfps where fingerprint = $1`,
       [fingerprint]
     );
 
@@ -163,6 +166,12 @@ export async function dedupAndStore(tender: Tender) {
           required_certifications,
           deadline_submission,
           published_at,
+          categories,
+          documents,
+          purchasing_agents,
+          trade_agreements,
+          duration,
+          conditions,
           fingerprint,
           fetched_at
         ) VALUES (
@@ -171,7 +180,7 @@ export async function dedupAndStore(tender: Tender) {
           $9,$10,$11,$12,
           $13,$14,$15,$16,
           $17,$18,$19,
-          $20,$21
+          $20,$21,$22,$23,$24,$25,$26,$27
         ) RETURNING id
         `,
         [
@@ -191,11 +200,17 @@ export async function dedupAndStore(tender: Tender) {
           tender.budgetMax ?? null, // $14 budget_max
           tender.currency || "CAD", // $15 currency
           tender.setAside || null, // $16 set_aside
-          JSON.stringify(tender.requiredCertifications || []), // $17 required_certifications (JSON)
-          deadlineSubmission, // $18 deadline_submission (Date|null)
-          publishedAt, // $19 published_at (Date|null)
-          fingerprint, // $20 fingerprint
-          fetchedAt, // $21 fetched_at
+          JSON.stringify(tender.requiredCertifications || []), // $17 required_certifications
+          deadlineSubmission, // $18 deadline_submission
+          publishedAt, // $19 published_at
+          JSON.stringify(tender.category || []), // $20 categories
+          JSON.stringify(tender.documents || []), // $21 documents
+          JSON.stringify(tender.contacts || []), // $22 purchasing_agents
+          JSON.stringify(tender.tradeAgreements || []), // $23 trade_agreements
+          tender.duration || null, // $24 duration
+          tender.conditions || null, // $25 conditions
+          fingerprint, // $26 fingerprint
+          fetchedAt, // $27 fetched_at
         ]
       );
 
@@ -226,9 +241,15 @@ export async function dedupAndStore(tender: Tender) {
         required_certifications = $16,
         deadline_submission = $17,
         published_at = $18,
-        fetched_at = $19,
-        updated_at = $19
-      WHERE fingerprint = $20
+        categories = $19,
+        documents = $20,
+        purchasing_agents = $21,
+        trade_agreements = $22,
+        duration = $23,
+        conditions = $24,
+        fetched_at = $25,
+        updated_at = $25
+      WHERE fingerprint = $26
       `,
       [
         tender.sourceId,
@@ -249,7 +270,13 @@ export async function dedupAndStore(tender: Tender) {
         JSON.stringify(tender.requiredCertifications || []),
         deadlineSubmission,
         publishedAt,
-        fetchedAt, // used for both fetched_at and updated_at
+        JSON.stringify(tender.category || []),
+        JSON.stringify(tender.documents || []),
+        JSON.stringify(tender.contacts || []),
+        JSON.stringify(tender.tradeAgreements || []),
+        tender.duration || null,
+        tender.conditions || null,
+        fetchedAt,
         fingerprint,
       ]
     );
