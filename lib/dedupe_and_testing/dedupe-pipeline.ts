@@ -141,7 +141,7 @@ export async function dedupAndStore(tender: Tender) {
 
     // insert new row
     if (existing.rowCount === 0) {
-      await client.query(
+      const insertRes = await client.query(
         `
         INSERT INTO rfps (
           source_id,
@@ -172,7 +172,7 @@ export async function dedupAndStore(tender: Tender) {
           $13,$14,$15,$16,
           $17,$18,$19,
           $20,$21
-        )
+        ) RETURNING id
         `,
         [
           tender.sourceId, // $1 source_id
@@ -199,7 +199,7 @@ export async function dedupAndStore(tender: Tender) {
         ]
       );
 
-      return "NEW";
+      return { status: "NEW", id: insertRes.rows[0].id };
     }
 
     // when scraping again, overwrite record with the latest fields
@@ -254,7 +254,7 @@ export async function dedupAndStore(tender: Tender) {
       ]
     );
 
-    return "UPDATED";
+    return { status: "UPDATED", id: existing.rows[0].id };
   } finally {
     // release the DB client back to the pool
     client.release();

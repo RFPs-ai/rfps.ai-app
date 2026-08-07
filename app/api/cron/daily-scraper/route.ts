@@ -7,7 +7,7 @@ import { sendRfpEmail } from "@/lib/email/resend";
 import { mem0Recall } from "@/lib/mem0";
 
 const EXTRACTION_PROMPT = `
-You are a procurement research analyst for Nimblox Inc., an Ottawa-based technology and management consultancy.
+You are a procurement research analyst.
 You are given the raw HTML text of a web page that contains an RFP (Request for Proposal), tender, or bid opportunity.
 
 Extract the details of the RFP into a clean JSON object with the following fields:
@@ -23,6 +23,21 @@ Only return valid JSON format. Return an array of objects if there are multiple 
 Ensure your response starts with \`[\` and ends with \`]\`.
 `;
 
+const MATCHMAKING_PROMPT = `
+You are an expert procurement matchmaker.
+I will give you a User Profile (representing what the user does and what kind of RFPs they are looking for).
+I will also give you a list of NEW RFPs that were just scraped.
+
+Evaluate each RFP against the User Profile.
+Return a JSON array of objects, one for each RFP, with the following fields:
+- "rfpId": The EXACT id string of the RFP provided.
+- "score": A relevance score from 0 to 100 indicating how well it matches the User Profile.
+- "relevant": true if the score is >= 75, false otherwise.
+- "reason": A very short 1-sentence explanation of why it matches or doesn't match.
+
+Ensure your response starts with \`[\` and ends with \`]\`.
+`;
+
 async function fetchHtml(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
@@ -31,22 +46,21 @@ async function fetchHtml(url: string): Promise<string> {
       },
       signal: AbortSignal.timeout(10000),
     });
-    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    if (!response.ok) throw new Error(\`HTTP error: \${response.status}\`);
     const html = await response.text();
-    return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    return html.replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')
+               .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')
                .replace(/<[^>]+>/g, ' ')
-               .replace(/\s+/g, ' ')
+               .replace(/\\s+/g, ' ')
                .substring(0, 20000);
   } catch (error) {
-    console.error(`Failed to fetch ${url}:`, error);
+    console.error(\`Failed to fetch \${url}:\`, error);
     return "";
   }
 }
 
 async function tavilySearch(query: string): Promise<string[]> {
   if (!process.env.TAVILY_API_KEY) {
-    console.log("No TAVILY_API_KEY found, falling back to static URL.");
     return ["https://cloverdalerodeo.com/2026/07/17/rfp-website-redesign-26-07-web/"];
   }
 
@@ -58,12 +72,12 @@ async function tavilySearch(query: string): Promise<string[]> {
         api_key: process.env.TAVILY_API_KEY,
         query: query,
         search_depth: "basic",
-        max_results: 5,
+        max_results: 3,
         days: 3
       })
     });
     
-    if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
+    if (!res.ok) throw new Error(\`Tavily error: \${res.status}\`);
     
     const data = await res.json();
     if (data && data.results) {
@@ -78,7 +92,7 @@ async function tavilySearch(query: string): Promise<string[]> {
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (process.env.CRON_SECRET && authHeader !== \`Bearer \${process.env.CRON_SECRET}\`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -93,55 +107,42 @@ export async function GET(request: Request) {
   });
 
   try {
-    const client = await pool.connect();
-    
-    const res = await client.query('SELECT id, email FROM "user" LIMIT 1');
-    if (res.rows.length === 0) {
-      client.release();
-      await pool.end();
-      return NextResponse.json({ success: false, message: "No users in database." });
-    }
-    const userId = res.rows[0].id;
-    const userEmail = res.rows[0].email;
+    // PHASE 1: GLOBAL SCRAPING
+    const searchQueries = [
+      \`Open RFP tender request for proposal website design Canada \${new Date().getFullYear()}\`,
+      \`Open RFP tender request for proposal software development \${new Date().getFullYear()}\`,
+      \`Open RFP tender request for proposal IT consulting \${new Date().getFullYear()}\`
+    ];
 
-    let searchContext = "website design, software development, RFP in Canada";
-    try {
-      if (process.env.MEM0_API_KEY) {
-        const memories = await mem0Recall({ userId, query: "What kind of RFPs and locations does the user want?", limit: 3 });
-        if (memories && memories.length > 0) {
-          searchContext = memories.map((m: any) => m.memory).join(". ");
-        }
-      }
-    } catch (e) {
-      console.log("Mem0 recall failed", e);
+    const targetUrls = new Set<string>();
+    for (const query of searchQueries) {
+      const urls = await tavilySearch(query);
+      urls.forEach(u => targetUrls.add(u));
     }
-
-    const tavilyQuery = `Open RFP tender request for proposal ${searchContext} ${new Date().getFullYear()}`;
-    const targetUrls = await tavilySearch(tavilyQuery);
 
     const allTenders: Tender[] = [];
 
-    for (const url of targetUrls) {
+    for (const url of Array.from(targetUrls)) {
       const htmlText = await fetchHtml(url);
       if (!htmlText || htmlText.length < 500) continue;
 
       try {
-        const aiModel = process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct:free";
+        const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
         const { text } = await generateText({
           model: openrouter(aiModel),
-          prompt: `${EXTRACTION_PROMPT}\n\n=== RAW CONTENT ===\n${htmlText}`,
+          prompt: \`\${EXTRACTION_PROMPT}\\n\\n=== RAW CONTENT ===\\n\${htmlText}\`,
         });
         
-        const cleanJsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const cleanJsonStr = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
         const extractedArray = JSON.parse(cleanJsonStr);
 
         if (Array.isArray(extractedArray)) {
           for (const item of extractedArray) {
             if (!item.title || item.title === "Unknown RFP") continue;
-
+            
             allTenders.push({
               source: "AI Web Scraper",
-              sourceId: item.bidNumber || `ai-gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              sourceId: item.bidNumber || \`ai-gen-\${Date.now()}-\${Math.floor(Math.random() * 1000)}\`,
               sourceUrl: url,
               title: item.title,
               buyerName: item.buyerName,
@@ -154,42 +155,102 @@ export async function GET(request: Request) {
           }
         }
       } catch (error) {
-        console.error(`Error parsing AI output for ${url}:`, error);
+        console.error(\`Error parsing AI output for \${url}:\`, error);
       }
     }
 
     if (allTenders.length === 0) {
+      await pool.end();
+      return NextResponse.json({ success: true, message: "No valid tenders found globally." });
+    }
+
+    const newScrapedRfps: any[] = [];
+
+    for (const tender of allTenders) {
+      const { status, id } = await dedupAndStore(tender);
+      if (status === "NEW") {
+        newScrapedRfps.push({
+          id,
+          title: tender.title,
+          description: tender.description,
+          buyerName: tender.buyerName,
+        });
+      }
+    }
+
+    if (newScrapedRfps.length === 0) {
+      await pool.end();
+      return NextResponse.json({ success: true, message: "No new RFPs inserted today." });
+    }
+
+    // PHASE 2: INTELLIGENT MATCHMAKING
+    const client = await pool.connect();
+    
+    const usersRes = await client.query('SELECT id, email FROM "user"');
+    if (usersRes.rows.length === 0) {
       client.release();
       await pool.end();
-      return NextResponse.json({ success: true, matches: 0, message: "No valid tenders found." });
+      return NextResponse.json({ success: true, message: "No users to match against." });
     }
-    
-    let newMatches = 0;
-    for (const tender of allTenders) {
-      await dedupAndStore(tender);
+
+    let totalNewMatches = 0;
+
+    for (const user of usersRes.rows) {
+      let searchContext = "general technology procurement";
       
-      const fingerprintRes = await client.query("SELECT id FROM rfps WHERE source_url = $1 LIMIT 1", [tender.sourceUrl]);
-      if (fingerprintRes.rows.length > 0) {
-        const rfpId = fingerprintRes.rows[0].id;
-        
-        const userRfpCheck = await client.query("SELECT id FROM user_rfps WHERE user_id = $1 AND rfp_id = $2", [userId, rfpId]);
-        if (userRfpCheck.rows.length === 0) {
-          await client.query(
-            "INSERT INTO user_rfps (user_id, rfp_id, status, relevance_score) VALUES ($1, $2, 'new', 95)",
-            [userId, rfpId]
-          );
-          newMatches++;
+      try {
+        if (process.env.MEM0_API_KEY) {
+          const memories = await mem0Recall({ userId: user.id, query: "What kind of RFPs and locations does the user want?", limit: 5 });
+          if (memories && memories.length > 0) {
+            searchContext = memories.map((m: any) => m.memory).join(". ");
+          }
         }
+      } catch (e) {
+        console.log("Mem0 recall failed", e);
+      }
+
+      try {
+        const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
+        const { text } = await generateText({
+          model: openrouter(aiModel),
+          prompt: \`\${MATCHMAKING_PROMPT}\\n\\n=== USER PROFILE ===\\n\${searchContext}\\n\\n=== NEW RFPS ===\\n\${JSON.stringify(newScrapedRfps, null, 2)}\`,
+        });
+
+        const cleanJsonStr = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+        const evaluations = JSON.parse(cleanJsonStr);
+
+        let userNewMatches = 0;
+        const emailTenders: Tender[] = [];
+
+        for (const evalResult of evaluations) {
+          if (evalResult.relevant && evalResult.score >= 75) {
+            const rfpId = evalResult.rfpId;
+            
+            const userRfpCheck = await client.query("SELECT id FROM user_rfps WHERE user_id = $1 AND rfp_id = $2", [user.id, rfpId]);
+            if (userRfpCheck.rows.length === 0) {
+              await client.query(
+                "INSERT INTO user_rfps (user_id, rfp_id, status, relevance_score) VALUES ($1, $2, 'new', $3)",
+                [user.id, rfpId, evalResult.score]
+              );
+              userNewMatches++;
+              totalNewMatches++;
+
+              const fullTender = allTenders.find(t => newScrapedRfps.find(nr => nr.id === rfpId && nr.title === t.title));
+              if (fullTender) emailTenders.push(fullTender);
+            }
+          }
+        }
+
+        if (userNewMatches > 0 && typeof sendRfpEmail === "function") {
+          await sendRfpEmail(user.email, emailTenders);
+        }
+      } catch (err) {
+        console.error(\`Failed to evaluate matches for \${user.email}:\`, err);
       }
     }
     
     client.release();
-
-    if (newMatches > 0) {
-      await sendRfpEmail(userEmail, allTenders);
-    }
-    
-    return NextResponse.json({ success: true, matches: newMatches });
+    return NextResponse.json({ success: true, globalScraped: allTenders.length, newMatches: totalNewMatches });
   } catch (error: any) {
     console.error("Cron Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -19,7 +19,7 @@ const openrouter = createOpenAI({
 });
 
 const EXTRACTION_PROMPT = `
-You are a procurement research analyst for Nimblox Inc., an Ottawa-based technology and management consultancy.
+You are a procurement research analyst for RFPs.ai, an automated RFP discovery platform.
 You are given the raw HTML text of a web page that contains an RFP (Request for Proposal), tender, or bid opportunity.
 
 Extract the details of the RFP into a clean JSON object with the following fields:
@@ -35,6 +35,21 @@ Only return valid JSON format. Return an array of objects if there are multiple 
 Ensure your response starts with \`[\` and ends with \`]\`.
 `;
 
+const MATCHMAKING_PROMPT = `
+You are an expert procurement matchmaker.
+I will give you a User Profile (representing what the user does and what kind of RFPs they are looking for).
+I will also give you a list of NEW RFPs that were just scraped.
+
+Evaluate each RFP against the User Profile.
+Return a JSON array of objects, one for each RFP, with the following fields:
+- "rfpId": The EXACT id string of the RFP provided.
+- "score": A relevance score from 0 to 100 indicating how well it matches the User Profile.
+- "relevant": true if the score is >= 75, false otherwise.
+- "reason": A very short 1-sentence explanation of why it matches or doesn't match.
+
+Ensure your response starts with \`[\` and ends with \`]\`.
+`;
+
 async function fetchHtml(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
@@ -43,22 +58,21 @@ async function fetchHtml(url: string): Promise<string> {
       },
       signal: AbortSignal.timeout(10000),
     });
-    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    if (!response.ok) throw new Error(\`HTTP error: \${response.status}\`);
     const html = await response.text();
-    return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    return html.replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')
+               .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')
                .replace(/<[^>]+>/g, ' ')
-               .replace(/\s+/g, ' ')
+               .replace(/\\s+/g, ' ')
                .substring(0, 20000); // 20k chars is plenty for Gemini flash
   } catch (error) {
-    console.error(`Failed to fetch ${url}:`, error);
+    console.error(\`Failed to fetch \${url}:\`, error);
     return "";
   }
 }
 
 async function tavilySearch(query: string): Promise<string[]> {
   if (!process.env.TAVILY_API_KEY) {
-    console.log("No TAVILY_API_KEY found, falling back to static URL.");
     return ["https://cloverdalerodeo.com/2026/07/17/rfp-website-redesign-26-07-web/"];
   }
 
@@ -70,12 +84,12 @@ async function tavilySearch(query: string): Promise<string[]> {
         api_key: process.env.TAVILY_API_KEY,
         query: query,
         search_depth: "basic",
-        max_results: 5,
+        max_results: 3,
         days: 3 // Only very recent postings
       })
     });
     
-    if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
+    if (!res.ok) throw new Error(\`Tavily error: \${res.status}\`);
     
     const data = await res.json();
     if (data && data.results) {
@@ -89,60 +103,43 @@ async function tavilySearch(query: string): Promise<string[]> {
 }
 
 async function main() {
-  console.log("Starting daily AI scraper for real RFPs...");
+  console.log("Starting daily AI scraper (Phase 1: Global Scrape)...");
 
-  const client = await pool.connect();
-  
-  // Find Nimblox user (or fallback to the first user for demo purposes)
-  const res = await client.query('SELECT id, email FROM "user" LIMIT 1');
-  if (res.rows.length === 0) {
-    console.log("No users in database to associate RFPs with.");
-    client.release();
-    return;
-  }
-  const userId = res.rows[0].id;
-  const userEmail = res.rows[0].email;
+  // PHASE 1: GLOBAL SCRAPING
+  const searchQueries = [
+    \`Open RFP tender request for proposal website design Canada \${new Date().getFullYear()}\`,
+    \`Open RFP tender request for proposal software development \${new Date().getFullYear()}\`,
+    \`Open RFP tender request for proposal IT consulting \${new Date().getFullYear()}\`
+  ];
 
-  // 1. Fetch User Preferences from Mem0
-  let searchContext = "website design, software development, RFP in Canada";
-  try {
-    if (process.env.MEM0_API_KEY) {
-      const memories = await mem0Recall({ userId, query: "What kind of RFPs and locations does the user want?", limit: 3 });
-      if (memories && memories.length > 0) {
-        searchContext = memories.map((m: any) => m.memory).join(". ");
-        console.log("Retrieved Mem0 preferences:", searchContext);
-      }
-    }
-  } catch (e) {
-    console.log("Mem0 recall failed or not configured, using default context.", e);
+  const targetUrls = new Set<string>();
+  for (const query of searchQueries) {
+    console.log(\`Searching Tavily: "\${query}"\`);
+    const urls = await tavilySearch(query);
+    urls.forEach(u => targetUrls.add(u));
   }
 
-  // 2. Search Tavily for URLs based on Mem0 context
-  const tavilyQuery = `Open RFP tender request for proposal ${searchContext} ${new Date().getFullYear()}`;
-  console.log("Tavily Search Query:", tavilyQuery);
-  const targetUrls = await tavilySearch(tavilyQuery);
-  console.log(`Tavily found ${targetUrls.length} URLs to scrape.`);
+  console.log(\`Tavily found \${targetUrls.size} unique URLs to scrape.\`);
 
   const allTenders: Tender[] = [];
 
-  // 3. Scrape and Extract with OpenRouter (Gemini Flash Free)
-  for (const url of targetUrls) {
-    console.log(`Scraping: ${url}`);
+  for (const url of Array.from(targetUrls)) {
+    console.log(\`Scraping: \${url}\`);
     const htmlText = await fetchHtml(url);
     if (!htmlText || htmlText.length < 500) {
-      console.log(`Skipping ${url}, insufficient content.`);
+      console.log(\`Skipping \${url}, insufficient content.\`);
       continue;
     }
 
-    console.log(`Extracting data with AI (Gemini 2.5 Flash Free)...`);
+    console.log(\`Extracting data with AI (Gemini 2.5 Flash)...\`);
     try {
       const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
       const { text } = await generateText({
         model: openrouter(aiModel),
-        prompt: `${EXTRACTION_PROMPT}\n\n=== RAW CONTENT ===\n${htmlText}`,
+        prompt: \`\${EXTRACTION_PROMPT}\\n\\n=== RAW CONTENT ===\\n\${htmlText}\`,
       });
       
-      const cleanJsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      const cleanJsonStr = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
       const extractedArray = JSON.parse(cleanJsonStr);
 
       if (Array.isArray(extractedArray)) {
@@ -151,7 +148,7 @@ async function main() {
           
           allTenders.push({
             source: "AI Web Scraper",
-            sourceId: item.bidNumber || `ai-gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            sourceId: item.bidNumber || \`ai-gen-\${Date.now()}-\${Math.floor(Math.random() * 1000)}\`,
             sourceUrl: url,
             title: item.title,
             buyerName: item.buyerName,
@@ -164,51 +161,119 @@ async function main() {
         }
       }
     } catch (error) {
-      console.error(`Error parsing AI output for ${url}:`, error);
+      console.error(\`Error parsing AI output for \${url}:\`, error);
     }
   }
 
-  console.log(`Extracted ${allTenders.length} tenders total.`);
+  console.log(\`Extracted \${allTenders.length} tenders globally.\`);
 
   if (allTenders.length === 0) {
-    console.log("No valid tenders found. Exiting.");
-    client.release();
+    console.log("No valid tenders found globally. Exiting.");
+    await closeStore();
     await pool.end();
     return;
   }
 
-  let newMatches = 0;
+  const newScrapedRfps: any[] = [];
+
   for (const tender of allTenders) {
-    const status = await dedupAndStore(tender);
+    const { status, id } = await dedupAndStore(tender);
+    if (status === "NEW") {
+      newScrapedRfps.push({
+        id,
+        title: tender.title,
+        description: tender.description,
+        buyerName: tender.buyerName,
+      });
+    }
+  }
+
+  console.log(\`Inserted \${newScrapedRfps.length} completely NEW RFPs into the database.\`);
+
+  if (newScrapedRfps.length === 0) {
+    console.log("No new RFPs to match today. Exiting.");
+    await closeStore();
+    await pool.end();
+    return;
+  }
+
+  // PHASE 2: INTELLIGENT MATCHMAKING
+  console.log("Starting Phase 2: Intelligent Matchmaking...");
+  const client = await pool.connect();
+  
+  const usersRes = await client.query('SELECT id, email FROM "user"');
+  if (usersRes.rows.length === 0) {
+    console.log("No users in database. Skipping matchmaking.");
+    client.release();
+    await closeStore();
+    await pool.end();
+    return;
+  }
+
+  for (const user of usersRes.rows) {
+    console.log(\`Evaluating matches for user \${user.email} (\${user.id})...\`);
+    let searchContext = "general technology procurement";
     
-    // Get the fingerprint to link to the user
-    const fingerprintRes = await client.query("SELECT id FROM rfps WHERE source_url = $1 LIMIT 1", [tender.sourceUrl]);
-    if (fingerprintRes.rows.length > 0) {
-      const rfpId = fingerprintRes.rows[0].id;
-      
-      // Ensure userRfp exists
-      const userRfpCheck = await client.query("SELECT id FROM user_rfps WHERE user_id = $1 AND rfp_id = $2", [userId, rfpId]);
-      if (userRfpCheck.rows.length === 0) {
-        await client.query(
-          "INSERT INTO user_rfps (user_id, rfp_id, status, relevance_score) VALUES ($1, $2, 'new', 95)",
-          [userId, rfpId]
-        );
-        newMatches++;
+    try {
+      if (process.env.MEM0_API_KEY) {
+        const memories = await mem0Recall({ userId: user.id, query: "What kind of RFPs and locations does the user want?", limit: 5 });
+        if (memories && memories.length > 0) {
+          searchContext = memories.map((m: any) => m.memory).join(". ");
+          console.log(\`  - Mem0 Profile: \${searchContext}\`);
+        } else {
+          console.log(\`  - No Mem0 profile found, using fallback.\`);
+        }
       }
+    } catch (e) {
+      console.log("  - Mem0 recall failed", e);
+    }
+
+    try {
+      const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
+      const { text } = await generateText({
+        model: openrouter(aiModel),
+        prompt: \`\${MATCHMAKING_PROMPT}\\n\\n=== USER PROFILE ===\\n\${searchContext}\\n\\n=== NEW RFPS ===\\n\${JSON.stringify(newScrapedRfps, null, 2)}\`,
+      });
+
+      const cleanJsonStr = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+      const evaluations = JSON.parse(cleanJsonStr);
+
+      let userNewMatches = 0;
+      const emailTenders: Tender[] = [];
+
+      for (const evalResult of evaluations) {
+        if (evalResult.relevant && evalResult.score >= 75) {
+          const rfpId = evalResult.rfpId;
+          
+          // Double check it's not already linked
+          const userRfpCheck = await client.query("SELECT id FROM user_rfps WHERE user_id = $1 AND rfp_id = $2", [user.id, rfpId]);
+          if (userRfpCheck.rows.length === 0) {
+            await client.query(
+              "INSERT INTO user_rfps (user_id, rfp_id, status, relevance_score) VALUES ($1, $2, 'new', $3)",
+              [user.id, rfpId, evalResult.score]
+            );
+            userNewMatches++;
+
+            // Find full tender details for email
+            const fullTender = allTenders.find(t => newScrapedRfps.find(nr => nr.id === rfpId && nr.title === t.title));
+            if (fullTender) emailTenders.push(fullTender);
+          }
+        }
+      }
+
+      console.log(\`  - Matched \${userNewMatches} RFPs for \${user.email}\`);
+
+      if (userNewMatches > 0 && typeof sendRfpEmail === "function") {
+        console.log(\`  - Sending email digest to \${user.email}\`);
+        await sendRfpEmail(user.email, emailTenders);
+      }
+
+    } catch (err) {
+      console.error(\`  - Failed to evaluate matches for \${user.email}:\`, err);
     }
   }
   
   client.release();
-  console.log(`Inserted ${newMatches} new matches for user ${userId}`);
-
-  // Send email digest if new matches found
-  if (newMatches > 0) {
-    console.log("Sending email digest...");
-    if (typeof sendRfpEmail === "function") {
-        await sendRfpEmail(userEmail, allTenders);
-    }
-  }
-  
   await closeStore();
   await pool.end();
 }

@@ -47,7 +47,7 @@ export default async function MatchesPage() {
       <div>
         <h1 className="text-2xl md:text-3xl font-bold">Shortlisted RFPs</h1>
         <p className="text-sm md:text-base text-muted-foreground">
-          AI-curated opportunities matching your Nimblox profile
+          AI-curated opportunities matching your company profile
         </p>
       </div>
 
