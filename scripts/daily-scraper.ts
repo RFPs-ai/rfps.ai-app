@@ -136,7 +136,7 @@ async function main() {
 
     console.log(`Extracting data with AI (Gemini 2.5 Flash Free)...`);
     try {
-      const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-free";
+      const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
       const { text } = await generateText({
         model: openrouter(aiModel),
         prompt: `${EXTRACTION_PROMPT}\n\n=== RAW CONTENT ===\n${htmlText}`,

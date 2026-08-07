@@ -45,3 +45,4 @@ drizzle/
 *.swp
 *.swo
 *~
+.env*

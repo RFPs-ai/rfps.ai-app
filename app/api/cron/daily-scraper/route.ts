@@ -126,7 +126,7 @@ export async function GET(request: Request) {
       if (!htmlText || htmlText.length < 500) continue;
 
       try {
-        const aiModel = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-free";
+        const aiModel = process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct:free";
         const { text } = await generateText({
           model: openrouter(aiModel),
           prompt: `${EXTRACTION_PROMPT}\n\n=== RAW CONTENT ===\n${htmlText}`,
