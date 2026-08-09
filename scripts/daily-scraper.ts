@@ -55,6 +55,21 @@ Return a JSON array of objects, one for each RFP, with the following fields:
 - "reason": A very short 1-sentence explanation of why it matches or doesn't match.
 `;
 
+function formatLinks(html: string, baseUrl: string): string {
+  return html.replace(/<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1[^>]*>(.*?)<\/a>/gi, (match, p1, href, text) => {
+    try {
+      let absoluteUrl = href;
+      if (href.startsWith("/")) {
+        const origin = new URL(baseUrl).origin;
+        absoluteUrl = origin + href;
+      }
+      return ` ${text} (Link: ${absoluteUrl}) `;
+    } catch {
+      return ` ${text} `;
+    }
+  });
+}
+
 async function fetchHtml(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
@@ -65,11 +80,12 @@ async function fetchHtml(url: string): Promise<string> {
     });
     if (!response.ok) throw new Error("HTTP error: " + response.status);
     const html = await response.text();
-    return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-               .replace(/<[^>]+>/g, ' ')
-               .replace(/\s+/g, ' ')
-               .substring(0, 20000);
+    const formattedHtml = formatLinks(html, url);
+    return formattedHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .substring(0, 20000);
   } catch (error) {
     console.error("Failed to fetch " + url + ":", error);
     return "";
@@ -89,8 +105,14 @@ async function tavilySearch(query: string): Promise<string[]> {
         api_key: process.env.TAVILY_API_KEY,
         query: query,
         search_depth: "basic",
-        max_results: 3,
-        days: 3
+        max_results: 5,
+        days: 3,
+        include_domains: [
+          "canadabuys.canada.ca",
+          "merx.com",
+          "bidsandtenders.ca",
+          "ontariotenders.ca"
+        ]
       })
     });
     
@@ -153,7 +175,7 @@ async function main() {
           if (!item.title || item.title === "Unknown RFP") continue;
           
           allTenders.push({
-            source: "AI Web Scraper",
+            source: "Web Opportunity",
             sourceId: item.bidNumber || ("ai-gen-" + Date.now() + "-" + Math.floor(Math.random() * 1000)),
             sourceUrl: item.sourceUrl || url,
             title: item.title,

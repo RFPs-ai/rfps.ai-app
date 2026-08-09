@@ -381,7 +381,7 @@ export default async function RfpDetailPage({
       <footer className="border-t py-12 bg-background mt-16">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} RFPs.ai. All rights reserved.</p>
-          <p className="text-sm mt-2 font-medium">Autonomous Government Bid Procurement Platform</p>
+          <p className="text-sm mt-2 font-medium">Government procurement discovery simplified.</p>
         </div>
       </footer>
     </div>

@@ -54,7 +54,7 @@ export default async function LandingPage() {
             </span>
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Our autonomous AI scours the internet daily, reads hundreds of RFPs, and qualifies them against your exact capabilities. Stop searching. Start bidding.
+            Discover government procurement opportunities across all major feeds in one central directory. Stop searching. Start bidding.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
@@ -174,7 +174,7 @@ export default async function LandingPage() {
       <footer className="border-t py-12 bg-background mt-auto">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <p>© {new Date().getFullYear()} RFPs.ai. All rights reserved.</p>
-          <p className="text-sm mt-2">Autonomous AI Procurement Scraper</p>
+          <p className="text-sm mt-2">Government procurement discovery simplified.</p>
         </div>
       </footer>
     </div>
