@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { db, rfps } from "@/lib/db";
 import { desc, eq, isNotNull } from "drizzle-orm";
+
+export const dynamic = "force-dynamic";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, MapPin, Building2, Search } from "lucide-react";
