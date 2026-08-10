@@ -90,60 +90,60 @@ export default async function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recentRfps.length > 0 ? (
               recentRfps.map((rfp) => (
-                <Card key={rfp.id} className="group relative overflow-hidden border-border/50 hover:border-primary/50 transition-all hover:shadow-md bg-card flex flex-col h-full">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start gap-4 mb-3">
-                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                        {rfp.source || "Web"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(rfp.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <CardTitle className="text-lg leading-tight line-clamp-2">
-                      {rfp.title}
-                    </CardTitle>
-                  </CardHeader>
-                  
-                  <CardContent className="pb-4 flex-grow">
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                      {rfp.description || "No description provided. Click to view full details."}
-                    </p>
+                <Link key={rfp.id} href={"/rfp/" + rfp.id} className="block h-full focus:outline-none group">
+                  <Card className="border-border/50 hover:border-primary/50 transition-all hover:shadow-md bg-card flex flex-col h-full relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      {rfp.buyerName && (
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 shrink-0 text-primary/70" />
-                          <span className="truncate">{rfp.buyerName}</span>
-                        </div>
-                      )}
-                      {rfp.region && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 shrink-0 text-primary/70" />
-                          <span className="truncate">{rfp.region}</span>
-                        </div>
-                      )}
-                      {rfp.deadlineSubmission && (
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 shrink-0 text-primary/70" />
-                          <span className="truncate">
-                            Closes {new Date(rfp.deadlineSubmission).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter className="pt-4 border-t mt-auto">
-                    <Button variant="secondary" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors" asChild>
-                      <Link href={"/rfp/" + rfp.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-4 mb-3">
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                          {rfp.source || "Web Opportunity"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(rfp.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <CardTitle className="text-lg leading-tight line-clamp-2">
+                        {rfp.title}
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="pb-4 flex-grow">
+                      <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                        {rfp.description || "No description provided. Click to view full details."}
+                      </p>
+                      
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        {rfp.buyerName && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 shrink-0 text-primary/70" />
+                            <span className="truncate">{rfp.buyerName}</span>
+                          </div>
+                        )}
+                        {rfp.region && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 shrink-0 text-primary/70" />
+                            <span className="truncate">{rfp.region}</span>
+                          </div>
+                        )}
+                        {rfp.deadlineSubmission && (
+                          <div className="flex items-center gap-2">
+                            <CalendarDays className="h-4 w-4 shrink-0 text-primary/70" />
+                            <span className="truncate">
+                              Closes {new Date(rfp.deadlineSubmission).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter className="pt-4 border-t mt-auto">
+                      <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-secondary text-secondary-foreground shadow-sm h-9 px-4 py-2 w-full group-hover:bg-primary group-hover:text-primary-foreground">
                         View Full Details
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </Link>
               ))
             ) : (
               <div className="col-span-full py-20 text-center text-muted-foreground">
