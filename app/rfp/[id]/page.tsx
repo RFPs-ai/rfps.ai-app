@@ -72,12 +72,12 @@ export default async function RfpDetailPage({
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2">
+            <Button variant="ghost" size="sm" className="gap-2" asChild>
+              <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Feed
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <div className="h-6 w-px bg-border" />
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
@@ -87,12 +87,12 @@ export default async function RfpDetailPage({
             </div>
           </div>
           <nav className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
-            </Link>
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Get Started</Link>
+            </Button>
           </nav>
         </div>
       </header>
@@ -114,18 +114,18 @@ export default async function RfpDetailPage({
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {rfp.sourceUrl && (
-              <a href={rfp.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial">
-                <Button variant="outline" className="w-full gap-2 shadow-sm">
+              <Button variant="outline" className="w-full gap-2 shadow-sm flex-1 sm:flex-initial" asChild>
+                <a href={rfp.sourceUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                   View Original Source
-                </Button>
-              </a>
-            )}
-            <Link href="/signup" className="flex-1 sm:flex-initial">
-              <Button className="w-full gap-2 shadow-sm">
-                Track Opportunity
+                </a>
               </Button>
-            </Link>
+            )}
+            <Button className="w-full gap-2 shadow-sm flex-1 sm:flex-initial" asChild>
+              <Link href="/signup">
+                Track Opportunity
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -207,11 +207,11 @@ export default async function RfpDetailPage({
                             {doc.date ? new Date(doc.date).toLocaleDateString() : "N/A"}
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <Link href="/signup">
-                              <Button variant="ghost" size="sm" className="text-primary hover:text-primary-foreground font-semibold">
+                            <Button variant="ghost" size="sm" className="text-primary hover:text-primary-foreground font-semibold" asChild>
+                              <Link href="/signup">
                                 Download
-                              </Button>
-                            </Link>
+                              </Link>
+                            </Button>
                           </td>
                         </tr>
                       ))}

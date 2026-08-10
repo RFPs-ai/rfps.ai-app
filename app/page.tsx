@@ -32,12 +32,12 @@ export default async function LandingPage() {
             </span>
           </div>
           <nav className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
-            </Link>
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Get Started</Link>
+            </Button>
           </nav>
         </div>
       </header>
@@ -59,16 +59,12 @@ export default async function LandingPage() {
             Discover government procurement opportunities across all major feeds in one central directory. Stop searching. Start bidding.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
-              <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                Create Free Account
-              </Button>
-            </Link>
-            <Link href="#recent-bids">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full">
-                View Today's Bids
-              </Button>
-            </Link>
+            <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1" asChild>
+              <Link href="/signup">Create Free Account</Link>
+            </Button>
+            <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full" asChild>
+              <Link href="#recent-bids">View Today's Bids</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -86,11 +82,9 @@ export default async function LandingPage() {
                 Fresh RFPs discovered by our AI across the web in the last 24 hours.
               </p>
             </div>
-            <Link href="/login" className="hidden sm:block">
-              <Button variant="ghost" className="text-primary hover:bg-primary/10">
-                View all matches &rarr;
-              </Button>
-            </Link>
+            <Button variant="ghost" className="text-primary hover:bg-primary/10 hidden sm:inline-flex" asChild>
+              <Link href="/login">View all matches &rarr;</Link>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -143,11 +137,11 @@ export default async function LandingPage() {
                   </CardContent>
                   
                   <CardFooter className="pt-4 border-t mt-auto">
-                    <Link href={"/rfp/" + rfp.id} className="w-full">
-                      <Button variant="secondary" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Button variant="secondary" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors" asChild>
+                      <Link href={"/rfp/" + rfp.id}>
                         View Full Details
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </CardFooter>
                 </Card>
               ))
@@ -163,11 +157,9 @@ export default async function LandingPage() {
           </div>
           
           <div className="mt-8 sm:hidden">
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
-                View all matches
-              </Button>
-            </Link>
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/login">View all matches</Link>
+            </Button>
           </div>
         </div>
       </section>
